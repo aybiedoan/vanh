@@ -1,0 +1,69 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #1a0a12;
+  --foreground: hsl(320 60% 12%);
+  --primary: hsl(332 80% 55%);
+  --primary-foreground: #fff;
+  --font-display: 'Ms Madi', cursive;
+  --font-body: 'Quicksand', sans-serif;
+  --radius: 0.625rem;
+}
+
+@theme inline {
+  --font-sans: var(--font-quicksand), 'Quicksand', sans-serif;
+  --font-display: var(--font-ms-madi), 'Ms Madi', cursive;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-transparent outline-none;
+    box-sizing: border-box;
+  }
+  body {
+    font-family: var(--font-body);
+    color: var(--foreground);
+    background: var(--background);
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-body {
+    font-family: var(--font-body);
+  }
+}
+
+/* Odometer digit clip */
+.odometer-clip {
+  overflow: hidden;
+  display: inline-block;
+  position: relative;
+}
+
+/* Scrollbar hide */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Particle canvas */
+#particle-canvas {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
