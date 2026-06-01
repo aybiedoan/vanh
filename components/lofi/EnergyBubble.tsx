@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const LETTERS = [
@@ -36,6 +36,7 @@ export default function EnergyBubble() {
   const [particles, setParticles] = useState<Particle[]>([])
   const [showLetter, setShowLetter] = useState(false)
   const [currentLetter, setCurrentLetter] = useState(LETTERS[0])
+  const [hovered, setHovered] = useState(false)
   const counterRef = useRef(0)
   const btnRef = useRef<HTMLButtonElement>(null)
 
@@ -89,30 +90,45 @@ export default function EnergyBubble() {
       </div>
 
       {/* Button */}
-      <motion.button
-        ref={btnRef}
-        onClick={handleClick}
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.94 }}
-        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm cursor-pointer select-none"
-        style={{
-          fontFamily: 'var(--font-body)',
-          background: 'rgba(255,255,255,0.08)',
-          backdropFilter: 'blur(12px)',
-          color: 'hsl(332 80% 85%)',
-          boxShadow: '0 0 20px hsl(332 80% 55% / 0.2)',
-        }}
-        animate={{
-          boxShadow: [
-            '0 0 16px hsl(332 80% 55% / 0.15)',
-            '0 0 28px hsl(332 80% 55% / 0.35)',
-            '0 0 16px hsl(332 80% 55% / 0.15)',
-          ],
-        }}
-        transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
-      >
-        ✨ Nạp năng lượng
-      </motion.button>
+      <div className="relative flex items-center justify-end">
+        <AnimatePresence>
+          {hovered && (
+            <motion.span
+              initial={{ opacity: 0, x: 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 8 }}
+              transition={{ duration: 0.18 }}
+              className="absolute right-12 whitespace-nowrap text-xs tracking-wide pointer-events-none select-none"
+              style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 80% 88%)' }}
+            >
+              Nạp năng lượng
+            </motion.span>
+          )}
+        </AnimatePresence>
+        <motion.button
+          ref={btnRef}
+          onClick={handleClick}
+          onHoverStart={() => setHovered(true)}
+          onHoverEnd={() => setHovered(false)}
+          whileHover={{ scale: 1.12 }}
+          whileTap={{ scale: 0.94 }}
+          className="w-10 h-10 flex items-center justify-center rounded-full text-lg cursor-pointer select-none"
+          style={{
+            background: 'rgba(255,255,255,0.08)',
+            backdropFilter: 'blur(12px)',
+          }}
+          animate={{
+            boxShadow: [
+              '0 0 16px hsl(332 80% 55% / 0.15)',
+              '0 0 28px hsl(332 80% 55% / 0.35)',
+              '0 0 16px hsl(332 80% 55% / 0.15)',
+            ],
+          }}
+          transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+        >
+          ✨
+        </motion.button>
+      </div>
 
       {/* Letter Modal */}
       <AnimatePresence>

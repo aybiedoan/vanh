@@ -75,8 +75,14 @@ export default function CountdownTimer() {
     <div className="flex flex-col items-center select-none pointer-events-none">
       {/* Sub label */}
       <p
-        className="tracking-widest text-xs uppercase mb-6 opacity-70"
-        style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 80% 72%)' }}
+        className="tracking-widest uppercase mb-8"
+        style={{
+          fontFamily: 'var(--font-body)',
+          fontSize: 'clamp(0.85rem, 1.6vw, 1.1rem)',
+          letterSpacing: '0.22em',
+          color: 'hsl(332 90% 88%)',
+          textShadow: '0 0 24px hsl(332 80% 70% / 0.7)',
+        }}
       >
         Trạm tiếp sức mùa thi
       </p>

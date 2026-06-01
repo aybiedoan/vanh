@@ -1,6 +1,7 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import CountdownTimer from './CountdownTimer'
 import PlaylistWidget from './PlaylistWidget'
 import EnergyBubble from './EnergyBubble'
@@ -29,7 +30,7 @@ export default function Dashboard({ onOpenShowroom }: { onOpenShowroom: () => vo
       {/* ── CENTERPIECE: Countdown ── */}
       <div
         className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
-        style={{ paddingBottom: '6vh' }}
+        style={{ paddingBottom: '18vh' }}
       >
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -76,35 +77,51 @@ export default function Dashboard({ onOpenShowroom }: { onOpenShowroom: () => vo
 }
 
 function GiftPortalButton({ onOpen }: { onOpen: () => void }) {
+  const [hovered, setHovered] = useState(false)
   return (
-    <motion.button
-      onClick={onOpen}
-      whileHover={{ scale: 1.08 }}
-      whileTap={{ scale: 0.93 }}
-      className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm cursor-pointer select-none"
-      style={{
-        fontFamily: 'var(--font-body)',
-        background: 'rgba(255,255,255,0.08)',
-        backdropFilter: 'blur(12px)',
-        color: 'hsl(332 80% 85%)',
-      }}
-      animate={{
-        boxShadow: [
-          '0 0 12px hsl(280 60% 60% / 0.1)',
-          '0 0 24px hsl(280 60% 60% / 0.3)',
-          '0 0 12px hsl(280 60% 60% / 0.1)',
-        ],
-      }}
-      transition={{ repeat: Infinity, duration: 2.8, ease: 'easeInOut' }}
-    >
-      <motion.span
-        animate={{ scale: [1, 1.25, 1], rotate: [0, -8, 8, 0] }}
-        transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
-        style={{ display: 'inline-block' }}
+    <div className="relative flex items-center justify-end">
+      <AnimatePresence>
+        {hovered && (
+          <motion.span
+            initial={{ opacity: 0, x: 8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 8 }}
+            transition={{ duration: 0.18 }}
+            className="absolute right-12 whitespace-nowrap text-xs tracking-wide pointer-events-none select-none"
+            style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 80% 88%)' }}
+          >
+            Quà 1/6 của bé con...
+          </motion.span>
+        )}
+      </AnimatePresence>
+      <motion.button
+        onClick={onOpen}
+        onHoverStart={() => setHovered(true)}
+        onHoverEnd={() => setHovered(false)}
+        whileHover={{ scale: 1.12 }}
+        whileTap={{ scale: 0.93 }}
+        className="w-10 h-10 flex items-center justify-center rounded-full cursor-pointer select-none text-lg"
+        style={{
+          background: 'rgba(255,255,255,0.08)',
+          backdropFilter: 'blur(12px)',
+        }}
+        animate={{
+          boxShadow: [
+            '0 0 10px hsl(280 60% 60% / 0.1)',
+            '0 0 22px hsl(280 60% 60% / 0.3)',
+            '0 0 10px hsl(280 60% 60% / 0.1)',
+          ],
+        }}
+        transition={{ repeat: Infinity, duration: 2.8, ease: 'easeInOut' }}
       >
-        🎁
-      </motion.span>
-      <span>Quà 1/6 của bé con...</span>
-    </motion.button>
+        <motion.span
+          animate={{ scale: [1, 1.25, 1], rotate: [0, -8, 8, 0] }}
+          transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+          style={{ display: 'inline-block' }}
+        >
+          🎁
+        </motion.span>
+      </motion.button>
+    </div>
   )
 }
