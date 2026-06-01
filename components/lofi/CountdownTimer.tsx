@@ -102,11 +102,17 @@ export default function CountdownTimer() {
                   lineHeight: 1,
                 }}
               >
-                <OdometerNumber value={u.value} pad={u.label === 'ngày' ? 3 : 2} />
+                <OdometerNumber value={u.value} pad={u.label === 'ngày' ? 1 : 2} />
               </span>
               <span
-                className="mt-1 text-xs tracking-widest uppercase opacity-60"
-                style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 60% 80%)' }}
+                className="mt-2 tracking-widest uppercase"
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 'clamp(0.65rem, 1.1vw, 0.8rem)',
+                  letterSpacing: '0.18em',
+                  color: 'hsl(332 70% 88%)',
+                  opacity: 0.9,
+                }}
               >
                 {u.label}
               </span>

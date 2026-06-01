@@ -113,6 +113,8 @@ export default function PlaylistWidget() {
   const playerContainerRef = useRef<HTMLDivElement>(null)
   const ytApiLoaded = useRef(false)
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Always-current ref for handleTrackEnd to avoid stale closure inside YT callback
+  const handleTrackEndRef = useRef<() => void>(() => {})
 
   // Sync play state & time via polling
   const startProgressPoll = useCallback(() => {
@@ -193,8 +195,8 @@ export default function PlaylistWidget() {
             } else if (e.data === window.YT.PlayerState.ENDED) {
               setIsPlaying(false)
               stopProgressPoll()
-              // Handle loop modes in a separate effect
-              handleTrackEnd()
+              // Use ref to avoid stale closure — always calls latest logic
+              handleTrackEndRef.current()
             }
           },
         },
@@ -244,6 +246,9 @@ export default function PlaylistWidget() {
       setCurrentIdx((prev) => (prev + 1) % Math.max(tracks.length, 1))
     }
   }, [loopMode, tracks.length, currentIdx])
+
+  // Keep ref always pointing at the latest version so the stale YT closure always calls the right logic
+  handleTrackEndRef.current = handleTrackEnd
 
   const cycleLoopMode = () => {
     setLoopMode((prev) => {

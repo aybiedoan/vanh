@@ -29,8 +29,8 @@ export default function Dashboard({ onOpenShowroom }: { onOpenShowroom: () => vo
 
       {/* ── CENTERPIECE: Countdown ── */}
       <div
-        className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
-        style={{ paddingBottom: '18vh' }}
+        className="absolute inset-x-0 top-0 flex justify-center z-10 pointer-events-none"
+        style={{ paddingTop: '8vh' }}
       >
         <motion.div
           initial={{ opacity: 0, y: 24 }}
