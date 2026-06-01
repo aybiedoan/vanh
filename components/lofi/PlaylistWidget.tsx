@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trash2, Music2, Play, Pause, SkipForward, SkipBack } from 'lucide-react'
+import { Plus, Trash2, Music2, Play, Pause, SkipForward, SkipBack, Repeat, Repeat1, Shuffle } from 'lucide-react'
 
 declare global {
   interface Window {
@@ -36,6 +36,7 @@ declare global {
 }
 
 type Track = { id: string; title: string; url: string }
+type LoopMode = 'all' | 'one' | 'shuffle'
 
 function extractVideoId(url: string): string | null {
   const patterns = [
@@ -107,6 +108,7 @@ export default function PlaylistWidget() {
   const [isLoading, setIsLoading] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [loopMode, setLoopMode] = useState<LoopMode>('all')
   const playerRef = useRef<ReturnType<typeof window.YT.Player> | null>(null)
   const playerContainerRef = useRef<HTMLDivElement>(null)
   const ytApiLoaded = useRef(false)
@@ -191,7 +193,8 @@ export default function PlaylistWidget() {
             } else if (e.data === window.YT.PlayerState.ENDED) {
               setIsPlaying(false)
               stopProgressPoll()
-              setCurrentIdx((prev) => (prev + 1) % Math.max(tracks.length, 1))
+              // Handle loop modes in a separate effect
+              handleTrackEnd()
             }
           },
         },
@@ -214,6 +217,41 @@ export default function PlaylistWidget() {
       setDuration(0)
     } catch {}
   }, [currentIdx])
+
+  // Handle track end based on loop mode
+  const handleTrackEnd = useCallback(() => {
+    if (tracks.length === 0) return
+    if (loopMode === 'one') {
+      // Replay current track
+      try {
+        playerRef.current?.seekTo(0, true)
+        playerRef.current?.playVideo()
+      } catch {}
+    } else if (loopMode === 'shuffle') {
+      // Random track (excluding current if possible)
+      if (tracks.length === 1) {
+        playerRef.current?.seekTo(0, true)
+        playerRef.current?.playVideo()
+      } else {
+        let nextIdx = Math.floor(Math.random() * tracks.length)
+        while (nextIdx === currentIdx) {
+          nextIdx = Math.floor(Math.random() * tracks.length)
+        }
+        setCurrentIdx(nextIdx)
+      }
+    } else {
+      // Loop all (default)
+      setCurrentIdx((prev) => (prev + 1) % Math.max(tracks.length, 1))
+    }
+  }, [loopMode, tracks.length, currentIdx])
+
+  const cycleLoopMode = () => {
+    setLoopMode((prev) => {
+      if (prev === 'all') return 'one'
+      if (prev === 'one') return 'shuffle'
+      return 'all'
+    })
+  }
 
   const togglePlay = () => {
     if (!playerRef.current || tracks.length === 0) return
@@ -296,10 +334,10 @@ export default function PlaylistWidget() {
 
       {/* Header */}
       <div className="flex items-center gap-2">
-        {isPlaying ? <BeatBars /> : <Music2 size={14} style={{ color: 'hsl(332 80% 72%)' }} />}
+        {isPlaying ? <BeatBars /> : <Music2 size={14} style={{ color: 'hsl(332 90% 80%)' }} />}
         <span
-          className="text-xs tracking-widest uppercase opacity-70"
-          style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 60% 80%)' }}
+          className="text-xs tracking-widest uppercase"
+          style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 80% 88%)', opacity: 0.9 }}
         >
           Playlist học bài
         </span>
@@ -310,8 +348,8 @@ export default function PlaylistWidget() {
         <div className="flex flex-col gap-2">
           {/* Track name */}
           <p
-            className="text-xs truncate opacity-80 text-center"
-            style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 20% 90%)' }}
+            className="text-sm truncate text-center font-medium"
+            style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 30% 95%)' }}
           >
             {currentTrack?.title ?? ''}
           </p>
@@ -335,57 +373,82 @@ export default function PlaylistWidget() {
 
           {/* Time */}
           <div
-            className="flex justify-between text-[10px] opacity-50 -mt-1"
-            style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 20% 88%)' }}
+            className="flex justify-between text-[10px] -mt-1"
+            style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 40% 85%)', opacity: 0.75 }}
           >
             <span>{formatTime(currentTime)}</span>
             <span>{formatTime(duration)}</span>
           </div>
 
           {/* Playback controls */}
-          <div className="flex items-center justify-center gap-5">
+          <div className="flex items-center justify-center gap-4">
+            {/* Loop mode button */}
+            <button
+              onClick={cycleLoopMode}
+              className="transition-all hover:scale-110"
+              style={{ 
+                color: loopMode === 'all' ? 'hsl(332 60% 70%)' : 'hsl(332 90% 80%)',
+                opacity: loopMode === 'all' ? 0.6 : 1,
+              }}
+              title={loopMode === 'all' ? 'Loop playlist' : loopMode === 'one' ? 'Loop 1 song' : 'Shuffle'}
+            >
+              {loopMode === 'one' ? (
+                <Repeat1 size={14} />
+              ) : loopMode === 'shuffle' ? (
+                <Shuffle size={14} />
+              ) : (
+                <Repeat size={14} />
+              )}
+            </button>
             <button
               onClick={skipPrev}
-              className="opacity-50 hover:opacity-90 transition-opacity"
-              style={{ color: 'hsl(332 70% 80%)' }}
+              className="hover:scale-110 transition-all"
+              style={{ color: 'hsl(332 80% 85%)', opacity: 0.7 }}
             >
-              <SkipBack size={13} />
+              <SkipBack size={14} />
             </button>
             <motion.button
               onClick={togglePlay}
-              whileHover={{ scale: 1.1 }}
+              whileHover={{ scale: 1.15 }}
               whileTap={{ scale: 0.9 }}
-              className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ background: 'hsl(332 70% 60% / 0.25)', color: 'hsl(332 80% 86%)' }}
+              className="w-9 h-9 rounded-full flex items-center justify-center"
+              style={{ background: 'hsl(332 70% 55% / 0.35)', color: 'hsl(332 90% 92%)' }}
             >
-              {isPlaying ? <Pause size={13} /> : <Play size={13} />}
+              {isPlaying ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
             </motion.button>
             <button
               onClick={skipNext}
-              className="opacity-50 hover:opacity-90 transition-opacity"
-              style={{ color: 'hsl(332 70% 80%)' }}
+              className="hover:scale-110 transition-all"
+              style={{ color: 'hsl(332 80% 85%)', opacity: 0.7 }}
             >
-              <SkipForward size={13} />
+              <SkipForward size={14} />
             </button>
+            {/* Spacer for symmetry */}
+            <div style={{ width: 14 }} />
           </div>
         </div>
       )}
 
       {/* Input */}
-      <div className="flex items-center gap-2 border-b pb-2" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+      <div className="flex items-center gap-2 border-b pb-2" style={{ borderColor: 'rgba(255,255,255,0.15)' }}>
         <input
-          className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-30"
-          style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 40% 90%)' }}
+          className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-50"
+          style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 50% 95%)' }}
           placeholder="Dán link YouTube vào đây..."
           value={inputVal}
           onChange={(e) => setInputVal(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addTrack()}
         />
-        <button
+        <motion.button
           onClick={addTrack}
           disabled={isLoading}
-          className="opacity-60 hover:opacity-100 transition-opacity"
-          style={{ color: 'hsl(332 80% 72%)' }}
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.9 }}
+          className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+          style={{ 
+            background: 'hsl(332 70% 55% / 0.3)',
+            color: 'hsl(332 90% 90%)',
+          }}
         >
           {isLoading ? (
             <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}>
@@ -394,15 +457,15 @@ export default function PlaylistWidget() {
           ) : (
             <Plus size={14} />
           )}
-        </button>
+        </motion.button>
       </div>
 
       {/* Track List */}
       <div className="flex flex-col gap-1 max-h-36 overflow-y-auto no-scrollbar">
         {tracks.length === 0 && (
           <p
-            className="text-xs opacity-30 text-center py-3"
-            style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 40% 80%)' }}
+            className="text-xs text-center py-3"
+            style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 50% 80%)', opacity: 0.6 }}
           >
             Chưa có bài nào...
           </p>
@@ -444,8 +507,8 @@ export default function PlaylistWidget() {
                   ) : null}
                 </span>
                 <span
-                  className="flex-1 text-xs truncate opacity-80"
-                  style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 20% 88%)' }}
+                  className="flex-1 text-xs truncate"
+                  style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 30% 92%)' }}
                 >
                   {track.title}
                 </span>
@@ -454,10 +517,10 @@ export default function PlaylistWidget() {
                     e.stopPropagation()
                     removeTrack(idx)
                   }}
-                  className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
-                  style={{ color: 'hsl(332 80% 70%)' }}
+                  className="w-6 h-6 rounded-full flex items-center justify-center opacity-40 group-hover:opacity-100 hover:!bg-red-500/20 transition-all"
+                  style={{ color: 'hsl(0 70% 70%)' }}
                 >
-                  <Trash2 size={11} />
+                  <Trash2 size={12} />
                 </button>
               </div>
             </motion.div>
