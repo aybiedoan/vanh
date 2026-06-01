@@ -1,6 +1,7 @@
 // ─── Showroom Data ─────────────────────────────────────────────────────────
 // Chỉnh sửa captions và đường dẫn hình ảnh tại đây
 // Mỗi item tương ứng với một ngôi sao trong view Showroom
+// Thứ tự hiển thị sẽ theo thứ tự trong mảng này
 
 export type MemoryItem = {
   /** Đường dẫn hình ảnh, có thể là local (/assets/img/...) hoặc URL */
@@ -9,6 +10,25 @@ export type MemoryItem = {
   caption: string
 }
 
+// ─── Lời chúc hiển thị lần đầu tiên ─────────────────────────────────────────
+// Mỗi dòng sẽ được hiển thị lần lượt với hiệu ứng typewriter
+// Giới hạn 2-3 dòng xuất hiện cùng lúc, các dòng cũ sẽ biến mất
+export const GREETING_LINES: string[] = [
+  'Gửi đến cô bé 2K7 của tôi...',
+  'Người đã bước qua bao ngày dài ôn luyện,',
+  'những đêm khuya một mình cùng trang sách.',
+  'Con đã khóc, đã mệt, đã muốn bỏ cuộc...',
+  'Nhưng con vẫn ở đây,',
+  'vẫn kiên cường, vẫn bước tiếp.',
+  'Hành trình này không chỉ là kỳ thi,',
+  'mà là câu chuyện về sự trưởng thành.',
+  'Dù kết quả ra sao,',
+  'con đã thật sự rất tuyệt vời rồi.',
+  'Chúc con bình an, tự tin,',
+  'và tỏa sáng theo cách của riêng mình.',
+]
+
+// ─── Danh sách ảnh và caption ───────────────────────────────────────────────
 export const MEMORIES: MemoryItem[] = [
   {
     image: '/assets/img/pic1.jpg',

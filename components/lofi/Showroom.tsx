@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion'
-import { ArrowLeft, X } from 'lucide-react'
-import { MEMORIES, getFallbackImage, type MemoryItem } from '@/data/showroom-data'
+import { ArrowLeft, X, Play } from 'lucide-react'
+import { MEMORIES, GREETING_LINES, getFallbackImage, type MemoryItem } from '@/data/showroom-data'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,6 +23,11 @@ type DecorativeStar = {
   size: number
   opacity: number
 }
+
+type ViewPhase = 'greeting' | 'starsky'
+
+// ─── LocalStorage Key ─────────────────────────────────────────────────────────
+const HAS_SEEN_GREETING_KEY = 'showroom_has_seen_greeting'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -53,8 +58,8 @@ function generateDecorativeStars(count: number, width: number, height: number): 
     stars.push({
       x: Math.random() * width,
       y: Math.random() * height,
-      size: 0.5 + Math.random() * 2, // Random size 0.5-2.5px
-      opacity: 0.3 + Math.random() * 0.5, // Random opacity 0.3-0.8
+      size: 0.5 + Math.random() * 2,
+      opacity: 0.3 + Math.random() * 0.5,
     })
   }
   return stars
@@ -103,7 +108,7 @@ function ModalStardust() {
   )
 }
 
-// ─── Typewriter Text ──────────────────────────────────────────────────────────
+// ─── Typewriter for Modal ─────────────────────────────────────────────────────
 
 function TypewriterText({ text, delay = 0 }: { text: string; delay?: number }) {
   const [displayed, setDisplayed] = useState('')
@@ -143,13 +148,13 @@ function TypewriterText({ text, delay = 0 }: { text: string; delay?: number }) {
 
 // ─── Preloaded Image Component ────────────────────────────────────────────────
 
-function PreloadedImage({ 
-  src, 
-  alt, 
+function PreloadedImage({
+  src,
+  alt,
   fallbackIdx,
   className,
   style,
-}: { 
+}: {
   src: string
   alt: string
   fallbackIdx: number
@@ -162,12 +167,12 @@ function PreloadedImage({
   return (
     <div className={className} style={{ ...style, position: 'relative' }}>
       {!loaded && (
-        <div 
+        <div
           className="absolute inset-0 animate-pulse"
-          style={{ 
+          style={{
             background: 'linear-gradient(135deg, rgba(80,50,100,0.4) 0%, rgba(50,30,80,0.4) 100%)',
             borderRadius: 'inherit',
-          }} 
+          }}
         />
       )}
       <img
@@ -189,9 +194,259 @@ function PreloadedImage({
   )
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── 3D Photo Carousel ────────────────────────────────────────────────────────
 
-export default function Showroom({ onBack }: { onBack: () => void }) {
+function PhotoCarousel3D() {
+  const [rotation, setRotation] = useState(0)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    let animFrame: number
+    const animate = () => {
+      setRotation((prev) => prev + 0.15) // Slow rotation
+      animFrame = requestAnimationFrame(animate)
+    }
+    animate()
+    return () => cancelAnimationFrame(animFrame)
+  }, [])
+
+  const photos = MEMORIES
+  const angleStep = 360 / photos.length
+  const radius = Math.min(280, typeof window !== 'undefined' ? window.innerWidth * 0.35 : 280)
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative"
+      style={{
+        width: '100%',
+        height: '40vh',
+        minHeight: 260,
+        maxHeight: 400,
+        perspective: 1200,
+        perspectiveOrigin: '50% 50%',
+      }}
+    >
+      <div
+        className="absolute inset-0 flex items-center justify-center"
+        style={{
+          transformStyle: 'preserve-3d',
+          transform: `rotateY(${rotation}deg)`,
+        }}
+      >
+        {photos.map((photo, idx) => {
+          const angle = angleStep * idx
+          const rad = (angle * Math.PI) / 180
+          const x = Math.sin(rad) * radius
+          const z = Math.cos(rad) * radius
+
+          return (
+            <div
+              key={idx}
+              className="absolute"
+              style={{
+                transform: `translateX(${x}px) translateZ(${z}px) rotateY(${-angle}deg)`,
+                transformStyle: 'preserve-3d',
+              }}
+            >
+              <div
+                className="overflow-hidden"
+                style={{
+                  width: 100,
+                  height: 130,
+                  borderRadius: 10,
+                  border: '2px solid rgba(255,200,230,0.3)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                  background: 'rgba(40,20,40,0.6)',
+                }}
+              >
+                <PreloadedImage
+                  src={photo.image}
+                  alt={photo.caption}
+                  fallbackIdx={idx}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ─── Greeting View with Typewriter Lines ──────────────────────────────────────
+
+function GreetingView({ onComplete }: { onComplete: () => void }) {
+  const [currentLineIdx, setCurrentLineIdx] = useState(0)
+  const [visibleLines, setVisibleLines] = useState<{ idx: number; text: string; charIdx: number }[]>([])
+  const [isComplete, setIsComplete] = useState(false)
+
+  const MAX_VISIBLE_LINES = 3
+  const CHAR_DELAY = 60 // ms per character
+  const LINE_PAUSE = 800 // ms pause between lines
+
+  useEffect(() => {
+    if (currentLineIdx >= GREETING_LINES.length) {
+      // All lines done
+      const timeout = setTimeout(() => {
+        setIsComplete(true)
+        // Mark as seen
+        try {
+          localStorage.setItem(HAS_SEEN_GREETING_KEY, 'true')
+        } catch (e) {
+          // Ignore localStorage errors
+        }
+        setTimeout(onComplete, 1500)
+      }, 1500)
+      return () => clearTimeout(timeout)
+    }
+
+    const currentLine = GREETING_LINES[currentLineIdx]
+    let charIdx = 0
+
+    // Add new line to visible
+    setVisibleLines((prev) => {
+      const newLines = [...prev, { idx: currentLineIdx, text: '', charIdx: 0 }]
+      // Remove oldest if exceeds max
+      if (newLines.length > MAX_VISIBLE_LINES) {
+        return newLines.slice(1)
+      }
+      return newLines
+    })
+
+    // Type out characters
+    const typeInterval = setInterval(() => {
+      charIdx++
+      setVisibleLines((prev) =>
+        prev.map((line) =>
+          line.idx === currentLineIdx
+            ? { ...line, text: currentLine.slice(0, charIdx), charIdx }
+            : line
+        )
+      )
+
+      if (charIdx >= currentLine.length) {
+        clearInterval(typeInterval)
+        // Move to next line after pause
+        setTimeout(() => {
+          setCurrentLineIdx((prev) => prev + 1)
+        }, LINE_PAUSE)
+      }
+    }, CHAR_DELAY)
+
+    return () => clearInterval(typeInterval)
+  }, [currentLineIdx, onComplete])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden"
+      style={{
+        background: 'linear-gradient(180deg, #1a0a1f 0%, #2a1535 40%, #351a40 70%, #3d1f48 100%)',
+      }}
+    >
+      {/* Static decorative stars */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 80 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              width: 0.5 + Math.random() * 2,
+              height: 0.5 + Math.random() * 2,
+              background: `rgba(255, 240, 250, ${0.2 + Math.random() * 0.4})`,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* 3D Photo Carousel */}
+      <div className="w-full mb-8">
+        <PhotoCarousel3D />
+      </div>
+
+      {/* Greeting Text Area */}
+      <div
+        className="relative z-10 px-6 text-center"
+        style={{
+          minHeight: 180,
+          maxWidth: 600,
+        }}
+      >
+        <AnimatePresence mode="popLayout">
+          {visibleLines.map((line, i) => (
+            <motion.p
+              key={line.idx}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="mb-3"
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(1.4rem, 4vw, 2rem)',
+                color: 'hsl(320 40% 90%)',
+                lineHeight: 1.5,
+                textShadow: '0 2px 16px rgba(200,100,150,0.3)',
+              }}
+            >
+              {line.text}
+              {line.charIdx < GREETING_LINES[line.idx]?.length && (
+                <motion.span
+                  animate={{ opacity: [1, 0] }}
+                  transition={{ duration: 0.4, repeat: Infinity }}
+                  className="inline-block w-0.5 h-6 ml-1 align-middle"
+                  style={{ background: 'hsl(320 50% 75%)' }}
+                />
+              )}
+            </motion.p>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* Transition indicator */}
+      <AnimatePresence>
+        {isComplete && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="mt-8"
+          >
+            <div
+              className="px-6 py-3 rounded-full"
+              style={{
+                background: 'rgba(60,30,60,0.6)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,180,220,0.2)',
+                fontFamily: 'var(--font-body)',
+                fontSize: '0.9rem',
+                color: 'hsl(320 50% 80%)',
+              }}
+            >
+              Dang mo bau troi sao...
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  )
+}
+
+// ─── Star Sky View ────────────────────────────────────────────────────────────
+
+function StarSkyView({
+  onBack,
+  onReplayGreeting,
+}: {
+  onBack: () => void
+  onReplayGreeting: () => void
+}) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -211,7 +466,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
   const TOTAL = MEMORIES.length
   const MAGNETIC_RADIUS = 60
 
-  // Preload images in batches for better performance
+  // Preload images in batches
   useEffect(() => {
     const preloadBatch = (startIdx: number, batchSize: number) => {
       const endIdx = Math.min(startIdx + batchSize, MEMORIES.length)
@@ -219,16 +474,13 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
         const img = new Image()
         img.crossOrigin = 'anonymous'
         img.onload = () => {
-          setPreloadedImages(prev => new Set(prev).add(i))
+          setPreloadedImages((prev) => new Set(prev).add(i))
         }
         img.src = MEMORIES[i].image
       }
     }
 
-    // Preload first batch immediately
     preloadBatch(0, 5)
-
-    // Preload remaining in batches with delays
     const timers: NodeJS.Timeout[] = []
     for (let i = 5; i < MEMORIES.length; i += 5) {
       const timer = setTimeout(() => preloadBatch(i, 5), (i / 5) * 500)
@@ -274,146 +526,101 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
     return cache
   }, [stars])
 
-  // Canvas - only draw background and decorative stars (no animation)
+  // Canvas drawing function
+  const drawCanvas = useCallback(
+    (showLines: boolean = false) => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      canvas.width = dimensions.width
+      canvas.height = dimensions.height
+
+      // Deep purple/pink night sky gradient
+      const bg = ctx.createLinearGradient(0, 0, 0, dimensions.height)
+      bg.addColorStop(0, '#1a0a1f')
+      bg.addColorStop(0.3, '#2a1535')
+      bg.addColorStop(0.6, '#351a40')
+      bg.addColorStop(1, '#3d1f48')
+      ctx.fillStyle = bg
+      ctx.fillRect(0, 0, dimensions.width, dimensions.height)
+
+      // Nebula effects
+      const nebulaGrad1 = ctx.createRadialGradient(
+        dimensions.width * 0.2,
+        dimensions.height * 0.3,
+        0,
+        dimensions.width * 0.2,
+        dimensions.height * 0.3,
+        dimensions.width * 0.4
+      )
+      nebulaGrad1.addColorStop(0, 'rgba(120, 50, 100, 0.12)')
+      nebulaGrad1.addColorStop(0.5, 'rgba(80, 30, 80, 0.06)')
+      nebulaGrad1.addColorStop(1, 'transparent')
+      ctx.fillStyle = nebulaGrad1
+      ctx.fillRect(0, 0, dimensions.width, dimensions.height)
+
+      const nebulaGrad2 = ctx.createRadialGradient(
+        dimensions.width * 0.8,
+        dimensions.height * 0.7,
+        0,
+        dimensions.width * 0.8,
+        dimensions.height * 0.7,
+        dimensions.width * 0.35
+      )
+      nebulaGrad2.addColorStop(0, 'rgba(150, 60, 120, 0.1)')
+      nebulaGrad2.addColorStop(0.5, 'rgba(100, 40, 100, 0.05)')
+      nebulaGrad2.addColorStop(1, 'transparent')
+      ctx.fillStyle = nebulaGrad2
+      ctx.fillRect(0, 0, dimensions.width, dimensions.height)
+
+      // Draw decorative stars
+      decorativeStars.forEach((s) => {
+        ctx.beginPath()
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(255, 240, 250, ${s.opacity})`
+        ctx.fill()
+      })
+
+      // Draw constellation lines on hover
+      if (showLines && hoveredStar !== null && stars[hoveredStar]) {
+        const fromStar = stars[hoveredStar]
+        const nearest = nearestCache[hoveredStar] || []
+
+        nearest.forEach((ni) => {
+          const toStar = stars[ni]
+          if (!toStar) return
+
+          const grad = ctx.createLinearGradient(fromStar.x, fromStar.y, toStar.x, toStar.y)
+          grad.addColorStop(0, 'rgba(255, 180, 220, 0.6)')
+          grad.addColorStop(1, 'rgba(200, 150, 255, 0.2)')
+
+          ctx.beginPath()
+          ctx.moveTo(fromStar.x, fromStar.y)
+          ctx.lineTo(toStar.x, toStar.y)
+          ctx.strokeStyle = grad
+          ctx.lineWidth = 1
+          ctx.shadowColor = 'rgba(255, 180, 220, 0.5)'
+          ctx.shadowBlur = 6
+          ctx.stroke()
+          ctx.shadowBlur = 0
+        })
+      }
+    },
+    [dimensions, decorativeStars, hoveredStar, stars, nearestCache]
+  )
+
+  // Initial canvas draw
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    canvas.width = dimensions.width
-    canvas.height = dimensions.height
-
-    // Deep purple/pink night sky gradient
-    const bg = ctx.createLinearGradient(0, 0, 0, dimensions.height)
-    bg.addColorStop(0, '#1a0a1f')      // Deep purple-black
-    bg.addColorStop(0.3, '#2a1535')    // Dark purple
-    bg.addColorStop(0.6, '#351a40')    // Purple-magenta
-    bg.addColorStop(1, '#3d1f48')      // Deep magenta-purple
-    ctx.fillStyle = bg
-    ctx.fillRect(0, 0, dimensions.width, dimensions.height)
-
-    // Subtle pink nebula effect
-    const nebulaGrad1 = ctx.createRadialGradient(
-      dimensions.width * 0.2,
-      dimensions.height * 0.3,
-      0,
-      dimensions.width * 0.2,
-      dimensions.height * 0.3,
-      dimensions.width * 0.4
-    )
-    nebulaGrad1.addColorStop(0, 'rgba(120, 50, 100, 0.12)')
-    nebulaGrad1.addColorStop(0.5, 'rgba(80, 30, 80, 0.06)')
-    nebulaGrad1.addColorStop(1, 'transparent')
-    ctx.fillStyle = nebulaGrad1
-    ctx.fillRect(0, 0, dimensions.width, dimensions.height)
-
-    const nebulaGrad2 = ctx.createRadialGradient(
-      dimensions.width * 0.8,
-      dimensions.height * 0.7,
-      0,
-      dimensions.width * 0.8,
-      dimensions.height * 0.7,
-      dimensions.width * 0.35
-    )
-    nebulaGrad2.addColorStop(0, 'rgba(150, 60, 120, 0.1)')
-    nebulaGrad2.addColorStop(0.5, 'rgba(100, 40, 100, 0.05)')
-    nebulaGrad2.addColorStop(1, 'transparent')
-    ctx.fillStyle = nebulaGrad2
-    ctx.fillRect(0, 0, dimensions.width, dimensions.height)
-
-    // Draw 200 static decorative stars (no twinkling)
-    decorativeStars.forEach((s) => {
-      ctx.beginPath()
-      ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2)
-      ctx.fillStyle = `rgba(255, 240, 250, ${s.opacity})`
-      ctx.fill()
-    })
+    drawCanvas(false)
   }, [dimensions, decorativeStars])
 
-  // Draw constellation lines on separate canvas layer or just update
+  // Draw with lines on hover
   useEffect(() => {
-    if (hoveredStar === null) return
-
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    // Redraw everything including lines
-    // Deep purple/pink night sky gradient
-    const bg = ctx.createLinearGradient(0, 0, 0, dimensions.height)
-    bg.addColorStop(0, '#1a0a1f')
-    bg.addColorStop(0.3, '#2a1535')
-    bg.addColorStop(0.6, '#351a40')
-    bg.addColorStop(1, '#3d1f48')
-    ctx.fillStyle = bg
-    ctx.fillRect(0, 0, dimensions.width, dimensions.height)
-
-    // Nebula effects
-    const nebulaGrad1 = ctx.createRadialGradient(
-      dimensions.width * 0.2,
-      dimensions.height * 0.3,
-      0,
-      dimensions.width * 0.2,
-      dimensions.height * 0.3,
-      dimensions.width * 0.4
-    )
-    nebulaGrad1.addColorStop(0, 'rgba(120, 50, 100, 0.12)')
-    nebulaGrad1.addColorStop(0.5, 'rgba(80, 30, 80, 0.06)')
-    nebulaGrad1.addColorStop(1, 'transparent')
-    ctx.fillStyle = nebulaGrad1
-    ctx.fillRect(0, 0, dimensions.width, dimensions.height)
-
-    const nebulaGrad2 = ctx.createRadialGradient(
-      dimensions.width * 0.8,
-      dimensions.height * 0.7,
-      0,
-      dimensions.width * 0.8,
-      dimensions.height * 0.7,
-      dimensions.width * 0.35
-    )
-    nebulaGrad2.addColorStop(0, 'rgba(150, 60, 120, 0.1)')
-    nebulaGrad2.addColorStop(0.5, 'rgba(100, 40, 100, 0.05)')
-    nebulaGrad2.addColorStop(1, 'transparent')
-    ctx.fillStyle = nebulaGrad2
-    ctx.fillRect(0, 0, dimensions.width, dimensions.height)
-
-    // Draw decorative stars
-    decorativeStars.forEach((s) => {
-      ctx.beginPath()
-      ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2)
-      ctx.fillStyle = `rgba(255, 240, 250, ${s.opacity})`
-      ctx.fill()
-    })
-
-    // Draw constellation lines on hover
-    if (hoveredStar !== null && stars[hoveredStar]) {
-      const fromStar = stars[hoveredStar]
-      const nearest = nearestCache[hoveredStar] || []
-
-      nearest.forEach((ni) => {
-        const toStar = stars[ni]
-        if (!toStar) return
-
-        const grad = ctx.createLinearGradient(fromStar.x, fromStar.y, toStar.x, toStar.y)
-        grad.addColorStop(0, 'rgba(255, 180, 220, 0.6)')
-        grad.addColorStop(1, 'rgba(200, 150, 255, 0.2)')
-
-        ctx.beginPath()
-        ctx.moveTo(fromStar.x, fromStar.y)
-        ctx.lineTo(toStar.x, toStar.y)
-        ctx.strokeStyle = grad
-        ctx.lineWidth = 1
-        ctx.shadowColor = 'rgba(255, 180, 220, 0.5)'
-        ctx.shadowBlur = 6
-        ctx.stroke()
-        ctx.shadowBlur = 0
-      })
-    }
-  }, [hoveredStar, stars, nearestCache, dimensions, decorativeStars])
+    drawCanvas(hoveredStar !== null)
+  }, [hoveredStar, drawCanvas])
 
   // Update star positions with floating + magnetic effect
   useEffect(() => {
@@ -426,10 +633,8 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
 
       setStars((prev) =>
         prev.map((star) => {
-          // Floating animation
           const floatY = Math.sin(t * star.floatSpeed + star.floatOffset) * 6
 
-          // Magnetic effect
           const dx = mx - star.baseX
           const dy = my - star.baseY
           const dist = Math.hypot(dx, dy)
@@ -466,7 +671,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
     const my = smoothMouseY.get()
 
     let closest: number | null = null
-    let minDist = 30 // hover threshold
+    let minDist = 30
 
     stars.forEach((star, i) => {
       const d = Math.hypot(star.x - mx, star.y - my)
@@ -492,8 +697,11 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <div
+    <motion.div
       ref={containerRef}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="fixed inset-0 overflow-hidden"
       style={{ fontFamily: 'var(--font-body)', cursor: 'default' }}
     >
@@ -603,7 +811,34 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
         }}
       >
         <ArrowLeft size={14} />
-        <span>Tro ve tram tiep suc</span>
+        <span>Tro ve</span>
+      </motion.button>
+
+      {/* Replay Greeting Button */}
+      <motion.button
+        onClick={onReplayGreeting}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.7 }}
+        className="absolute top-6 right-6 flex items-center gap-2"
+        style={{
+          background: 'rgba(60,30,60,0.6)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,180,220,0.2)',
+          borderRadius: 40,
+          padding: '8px 18px',
+          fontFamily: 'var(--font-body)',
+          fontSize: '0.82rem',
+          color: 'hsl(320 60% 85%)',
+          cursor: 'pointer',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+          zIndex: 50,
+        }}
+      >
+        <Play size={14} />
+        <span>Xem loi chuc</span>
       </motion.button>
 
       {/* Cinematic Postcard Modal */}
@@ -721,6 +956,47 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
+  )
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export default function Showroom({ onBack }: { onBack: () => void }) {
+  const [phase, setPhase] = useState<ViewPhase>('greeting')
+  const [hasSeenGreeting, setHasSeenGreeting] = useState(false)
+
+  // Check localStorage on mount
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem(HAS_SEEN_GREETING_KEY)
+      if (seen === 'true') {
+        setHasSeenGreeting(true)
+        setPhase('starsky')
+      }
+    } catch (e) {
+      // Ignore localStorage errors
+    }
+  }, [])
+
+  const handleGreetingComplete = () => {
+    setHasSeenGreeting(true)
+    setPhase('starsky')
+  }
+
+  const handleReplayGreeting = () => {
+    setPhase('greeting')
+  }
+
+  return (
+    <AnimatePresence mode="wait">
+      {phase === 'greeting' && !hasSeenGreeting ? (
+        <GreetingView key="greeting" onComplete={handleGreetingComplete} />
+      ) : phase === 'greeting' && hasSeenGreeting ? (
+        <GreetingView key="greeting-replay" onComplete={() => setPhase('starsky')} />
+      ) : (
+        <StarSkyView key="starsky" onBack={onBack} onReplayGreeting={handleReplayGreeting} />
+      )}
+    </AnimatePresence>
   )
 }
