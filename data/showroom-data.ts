@@ -31,7 +31,7 @@ export const GREETING_LINES: string[] = [
 // ─── Danh sách ảnh và caption ───────────────────────────────────────────────
 export const MEMORIES: MemoryItem[] = [
   {
-    image: '/assets/img/pic1.jpg',
+    image: '/assets/img/583773154_18072778694594066_6691284261202878522_n.jpeg',
     caption: 'Ngày xửa ngày xưa khóc nhè...',
   },
   {
