@@ -3,31 +3,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion'
 import { ArrowLeft, X } from 'lucide-react'
-
-// ─── Data ─────────────────────────────────────────────────────────────────────
-
-const CAPTIONS = [
-  'Ngày xửa ngày xưa khóc nhè...',
-  'Bé con tập đi, vấp ngã, lại đứng dậy.',
-  'Lần đầu cắp sách đến trường, mắt tròn xoe.',
-  'Góc nhỏ ôn bài, ánh đèn vàng, tách trà còn ấm.',
-  'Mưa tầm tã, hai đứa trú dưới mái hiên cùng cười.',
-  'Bài kiểm tra đầu tiên — hồi hộp đến mất ngủ.',
-  'Chiều hè oi bức, vẫn ngồi ôn bài cần mẫn.',
-  'Khoảnh khắc bất chợt ngước nhìn bầu trời xanh.',
-  'Chụp ảnh nhóm trước kỳ thi, ai cũng nở nụ cười.',
-  'Tối khuya một mình, nhưng không bao giờ thực sự cô đơn.',
-  'Những trang vở chữ nhỏ li ti, mỗi chữ là một ước mơ.',
-  'Nụ cười sau khi nhận điểm tốt đầu tiên.',
-  'Mùa hoa phượng nở đỏ rực, bỗng thấy thời gian qua nhanh.',
-  'Đứng trước bảng thông báo, tim đập rộn ràng.',
-  'Buổi học cuối cùng, ai cũng lặng im một chút.',
-  'Áo dài trắng bay trong gió, đẹp đến nghẹn ngào.',
-  'Đêm trước kỳ thi lớn — trời trong, lòng bình yên.',
-  'Sáng sớm ra đi, theo mình là cả một trời hi vọng.',
-  'Khoảnh khắc nhìn lại, nhận ra mình đã đi xa đến vậy.',
-  'Giờ đã thành thiếu nữ sắp vượt vũ môn...',
-]
+import { MEMORIES, getFallbackImage, type MemoryItem } from '@/data/showroom-data'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,7 +20,7 @@ type Star = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function generateStars(count: number, width: number, height: number): Star[] {
-  const padding = 60
+  const padding = 80
   const stars: Star[] = []
 
   for (let i = 0; i < count; i++) {
@@ -57,7 +33,7 @@ function generateStars(count: number, width: number, height: number): Star[] {
       baseX: x,
       baseY: y,
       floatOffset: Math.random() * Math.PI * 2,
-      floatSpeed: 0.5 + Math.random() * 0.5,
+      floatSpeed: 0.4 + Math.random() * 0.4,
     })
   }
 
@@ -84,9 +60,9 @@ function ModalStardust() {
           key={i}
           className="absolute rounded-full"
           style={{
-            width: Math.random() * 4 + 2,
-            height: Math.random() * 4 + 2,
-            background: `hsla(${280 + Math.random() * 60}, 60%, 80%, ${0.4 + Math.random() * 0.4})`,
+            width: Math.random() * 3 + 1,
+            height: Math.random() * 3 + 1,
+            background: `hsla(${220 + Math.random() * 40}, 70%, 80%, ${0.4 + Math.random() * 0.4})`,
             left: `${Math.random() * 100}%`,
             top: -10,
           }}
@@ -137,7 +113,7 @@ function TypewriterText({ text, delay = 0 }: { text: string; delay?: number }) {
         transition={{ duration: 0.5, repeat: Infinity }}
         className="inline-block w-0.5 h-6 ml-1 align-middle"
         style={{
-          background: 'hsl(280 50% 50%)',
+          background: 'hsl(220 50% 70%)',
           display: displayed.length >= text.length ? 'none' : 'inline-block',
         }}
       />
@@ -164,7 +140,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
   const smoothMouseX = useSpring(mouseX, { stiffness: 150, damping: 20 })
   const smoothMouseY = useSpring(mouseY, { stiffness: 150, damping: 20 })
 
-  const TOTAL = 20
+  const TOTAL = MEMORIES.length
   const MAGNETIC_RADIUS = 60
 
   // Resize handler
@@ -214,10 +190,10 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
     canvas.height = dimensions.height
 
     // Background twinkling stars
-    const bgStars = Array.from({ length: 100 }, () => ({
+    const bgStars = Array.from({ length: 150 }, () => ({
       x: Math.random() * dimensions.width,
       y: Math.random() * dimensions.height,
-      r: Math.random() * 1.2 + 0.3,
+      r: Math.random() * 1.5 + 0.3,
       phase: Math.random() * Math.PI * 2,
     }))
 
@@ -227,20 +203,36 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
 
       ctx.clearRect(0, 0, dimensions.width, dimensions.height)
 
-      // Background gradient
+      // Night sky gradient
       const bg = ctx.createLinearGradient(0, 0, 0, dimensions.height)
-      bg.addColorStop(0, '#feeaf2')
-      bg.addColorStop(0.5, '#f3e8ff')
-      bg.addColorStop(1, '#e0e7ff')
+      bg.addColorStop(0, '#0a0a1a')
+      bg.addColorStop(0.3, '#0d1025')
+      bg.addColorStop(0.6, '#121530')
+      bg.addColorStop(1, '#1a1a35')
       ctx.fillStyle = bg
+      ctx.fillRect(0, 0, dimensions.width, dimensions.height)
+
+      // Subtle nebula effect
+      const nebulaGrad = ctx.createRadialGradient(
+        dimensions.width * 0.7,
+        dimensions.height * 0.3,
+        0,
+        dimensions.width * 0.7,
+        dimensions.height * 0.3,
+        dimensions.width * 0.5
+      )
+      nebulaGrad.addColorStop(0, 'rgba(60, 40, 100, 0.15)')
+      nebulaGrad.addColorStop(0.5, 'rgba(40, 30, 80, 0.08)')
+      nebulaGrad.addColorStop(1, 'transparent')
+      ctx.fillStyle = nebulaGrad
       ctx.fillRect(0, 0, dimensions.width, dimensions.height)
 
       // Twinkling background stars
       bgStars.forEach((s) => {
-        const alpha = 0.25 + 0.35 * Math.sin(t + s.phase)
+        const alpha = 0.3 + 0.5 * Math.sin(t + s.phase)
         ctx.beginPath()
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(180,140,220,${alpha})`
+        ctx.fillStyle = `rgba(200,210,255,${alpha})`
         ctx.fill()
       })
 
@@ -254,15 +246,15 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
           if (!toStar) return
 
           const grad = ctx.createLinearGradient(fromStar.x, fromStar.y, toStar.x, toStar.y)
-          grad.addColorStop(0, 'rgba(200,150,255,0.6)')
-          grad.addColorStop(1, 'rgba(220,180,255,0.2)')
+          grad.addColorStop(0, 'rgba(150,180,255,0.6)')
+          grad.addColorStop(1, 'rgba(180,200,255,0.2)')
 
           ctx.beginPath()
           ctx.moveTo(fromStar.x, fromStar.y)
           ctx.lineTo(toStar.x, toStar.y)
           ctx.strokeStyle = grad
           ctx.lineWidth = 1
-          ctx.shadowColor = 'rgba(200,140,255,0.5)'
+          ctx.shadowColor = 'rgba(150,180,255,0.5)'
           ctx.shadowBlur = 6
           ctx.stroke()
           ctx.shadowBlur = 0
@@ -348,6 +340,10 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
     setSelectedStar(null)
   }
 
+  const getMemory = (idx: number): MemoryItem => {
+    return MEMORIES[idx] || { image: getFallbackImage(idx), caption: '' }
+  }
+
   return (
     <div
       ref={containerRef}
@@ -361,6 +357,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
       <div className="absolute inset-0" style={{ zIndex: 10 }}>
         {stars.map((star, idx) => {
           const isHovered = hoveredStar === idx
+          const memory = getMemory(idx)
 
           return (
             <motion.div
@@ -380,8 +377,8 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
                 animate={{
                   scale: isHovered ? 1.6 : 1,
                   boxShadow: isHovered
-                    ? '0 0 20px 8px rgba(255,255,255,0.8), 0 0 40px 16px rgba(200,150,255,0.5)'
-                    : '0 0 12px 4px rgba(255,255,255,0.5)',
+                    ? '0 0 20px 8px rgba(200,220,255,0.9), 0 0 40px 16px rgba(150,180,255,0.5)'
+                    : '0 0 12px 4px rgba(200,220,255,0.6)',
                 }}
                 transition={{ duration: 0.3 }}
                 style={{
@@ -412,15 +409,15 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
                         width: 128,
                         height: 160,
                         borderRadius: 12,
-                        background: 'rgba(255,255,255,0.3)',
+                        background: 'rgba(30,40,80,0.6)',
                         backdropFilter: 'blur(12px)',
-                        border: '1px solid rgba(255,255,255,0.4)',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                        border: '1px solid rgba(150,180,255,0.3)',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                       }}
                     >
                       <img
-                        src={`/assets/img/pic${idx + 1}.jpg`}
-                        alt={CAPTIONS[idx]}
+                        src={memory.image}
+                        alt={memory.caption}
                         style={{
                           width: '100%',
                           height: '100%',
@@ -428,7 +425,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
                         }}
                         onError={(e) => {
                           const t = e.target as HTMLImageElement
-                          t.src = `https://picsum.photos/seed/lofi${idx + 1}/256/320`
+                          t.src = getFallbackImage(idx)
                         }}
                       />
                     </div>
@@ -449,16 +446,16 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
         transition={{ delay: 0.5 }}
         className="absolute top-6 left-6 flex items-center gap-2"
         style={{
-          background: 'rgba(255,255,255,0.55)',
+          background: 'rgba(30,40,80,0.6)',
           backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(200,140,255,0.25)',
+          border: '1px solid rgba(150,180,255,0.2)',
           borderRadius: 40,
           padding: '8px 18px',
           fontFamily: 'var(--font-body)',
           fontSize: '0.82rem',
-          color: 'hsl(270 50% 35%)',
+          color: 'hsl(220 70% 85%)',
           cursor: 'pointer',
-          boxShadow: '0 4px 16px rgba(180,120,240,0.15)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
           zIndex: 50,
         }}
       >
@@ -477,7 +474,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
             className="fixed inset-0 flex items-center justify-center"
             style={{
               zIndex: 100,
-              background: 'rgba(30,20,40,0.85)',
+              background: 'rgba(5,10,25,0.9)',
               backdropFilter: 'blur(20px)',
             }}
             onClick={closeModal}
@@ -497,7 +494,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
               style={{
                 width: 100,
                 height: 100,
-                background: 'radial-gradient(circle, rgba(200,150,255,0.4) 0%, transparent 70%)',
+                background: 'radial-gradient(circle, rgba(150,180,255,0.4) 0%, transparent 70%)',
                 left: stars[selectedStar]?.x || '50%',
                 top: stars[selectedStar]?.y || '50%',
                 transform: 'translate(-50%, -50%)',
@@ -519,11 +516,11 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
               }}
               className="relative max-w-2xl w-full mx-4 p-6 text-center"
               style={{
-                background: 'rgba(255,255,255,0.3)',
+                background: 'rgba(20,30,60,0.7)',
                 backdropFilter: 'blur(24px)',
-                border: '1px solid rgba(255,255,255,0.4)',
+                border: '1px solid rgba(150,180,255,0.2)',
                 borderRadius: 24,
-                boxShadow: '0 24px 80px rgba(0,0,0,0.35)',
+                boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -537,10 +534,10 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
                   width: 36,
                   height: 36,
                   borderRadius: '50%',
-                  background: 'rgba(255,255,255,0.5)',
+                  background: 'rgba(50,60,100,0.6)',
                   backdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  color: 'hsl(280 40% 40%)',
+                  border: '1px solid rgba(150,180,255,0.2)',
+                  color: 'hsl(220 60% 80%)',
                   cursor: 'pointer',
                 }}
               >
@@ -555,12 +552,12 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
                   maxWidth: 400,
                   aspectRatio: '4/3',
                   borderRadius: 16,
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                 }}
               >
                 <img
-                  src={`/assets/img/pic${selectedStar + 1}.jpg`}
-                  alt={CAPTIONS[selectedStar]}
+                  src={getMemory(selectedStar).image}
+                  alt={getMemory(selectedStar).caption}
                   style={{
                     width: '100%',
                     height: '100%',
@@ -568,7 +565,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
                   }}
                   onError={(e) => {
                     const t = e.target as HTMLImageElement
-                    t.src = `https://picsum.photos/seed/lofi${selectedStar + 1}/800/600`
+                    t.src = getFallbackImage(selectedStar)
                   }}
                 />
               </div>
@@ -581,12 +578,12 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
                 className="mt-6"
                 style={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: 'clamp(1.8rem, 5vw, 2.5rem)',
-                  color: 'hsl(280 30% 15%)',
+                  fontSize: 'clamp(1.6rem, 4.5vw, 2.2rem)',
+                  color: 'hsl(220 50% 90%)',
                   lineHeight: 1.4,
                 }}
               >
-                <TypewriterText text={CAPTIONS[selectedStar]} delay={400} />
+                <TypewriterText text={getMemory(selectedStar).caption} delay={400} />
               </motion.p>
             </motion.div>
           </motion.div>
