@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion'
 
 const LETTERS = [
-  'Cô bé ơi, anh tin em sẽ làm được mà. 🌸',
+  'Cô bé ơi, anh tin em sẽ làm được mà.',
   'Từng trang sách em học là một bước tiến đến tương lai rực rỡ.',
   'Áp lực là dấu hiệu của sự trưởng thành — em đang lớn lên đấy.',
   'Hít thở sâu đi nha. Mọi thứ rồi sẽ ổn thôi, anh hứa.',
@@ -38,7 +38,29 @@ export default function EnergyBubble() {
   const [letterRevealed, setLetterRevealed] = useState(false)
   const [currentLetter, setCurrentLetter] = useState(LETTERS[0])
   const [hovered, setHovered] = useState(false)
+  const [typedText, setTypedText] = useState('')
   const counterRef = useRef(0)
+
+  // Typing effect for letter
+  useEffect(() => {
+    if (!letterRevealed) {
+      setTypedText('')
+      return
+    }
+
+    let idx = 0
+    setTypedText('')
+    const interval = setInterval(() => {
+      if (idx < currentLetter.length) {
+        setTypedText(currentLetter.slice(0, idx + 1))
+        idx++
+      } else {
+        clearInterval(interval)
+      }
+    }, 35)
+
+    return () => clearInterval(interval)
+  }, [letterRevealed, currentLetter])
 
   const triggerParticles = useCallback((clientX: number, clientY: number) => {
     const count = 12
@@ -67,9 +89,6 @@ export default function EnergyBubble() {
   const handleEnvelopeClick = () => {
     if (!letterRevealed) {
       setLetterRevealed(true)
-    } else {
-      setShowEnvelope(false)
-      setLetterRevealed(false)
     }
   }
 
@@ -144,184 +163,389 @@ export default function EnergyBubble() {
         </motion.button>
       </div>
 
-      {/* Modal backdrop */}
+      {/* Modal */}
       <AnimatePresence>
         {showEnvelope && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.5 }}
             className="fixed inset-0 flex items-center justify-center cursor-pointer"
-            style={{ zIndex: 10000, background: 'rgba(40,20,30,0.75)', backdropFilter: 'blur(20px)' }}
+            style={{
+              zIndex: 10000,
+              background: 'radial-gradient(ellipse at center, rgba(60,30,50,0.85) 0%, rgba(25,15,30,0.95) 100%)',
+              backdropFilter: 'blur(24px)',
+            }}
             onClick={closeModal}
           >
-            {/* Envelope — fades out when letter is revealed */}
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0, y: 40 }}
-              animate={{
-                scale: letterRevealed ? 0.9 : 1,
-                opacity: letterRevealed ? 0 : 1,
-                y: letterRevealed ? 20 : 0,
-              }}
-              exit={{ scale: 0.85, opacity: 0, y: 20 }}
-              transition={
-                letterRevealed
-                  ? { duration: 0.45, ease: 'easeIn' }
-                  : { type: 'spring', stiffness: 180, damping: 22 }
-              }
+            {/* Ambient floating particles */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute rounded-full"
+                  style={{
+                    width: Math.random() * 3 + 1,
+                    height: Math.random() * 3 + 1,
+                    background: `hsla(${330 + Math.random() * 30}, 70%, 80%, ${0.3 + Math.random() * 0.3})`,
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                  }}
+                  animate={{
+                    y: [0, -30, 0],
+                    opacity: [0.3, 0.7, 0.3],
+                  }}
+                  transition={{
+                    duration: 3 + Math.random() * 2,
+                    repeat: Infinity,
+                    delay: Math.random() * 2,
+                    ease: 'easeInOut',
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* 3D Perspective Container */}
+            <div
               className="relative"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleEnvelopeClick()
+              style={{
+                perspective: '1200px',
+                perspectiveOrigin: '50% 50%',
               }}
-              style={{ pointerEvents: letterRevealed ? 'none' : 'auto' }}
             >
               {/* Envelope Container */}
-              <div
+              <motion.div
+                initial={{ scale: 0.7, opacity: 0, rotateX: -15 }}
+                animate={{
+                  scale: letterRevealed ? 0.85 : 1,
+                  opacity: letterRevealed ? 0 : 1,
+                  rotateX: letterRevealed ? 25 : 0,
+                  y: letterRevealed ? 80 : 0,
+                }}
+                exit={{ scale: 0.8, opacity: 0, y: 30 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 120,
+                  damping: 20,
+                  mass: 1,
+                }}
                 className="relative cursor-pointer"
-                style={{ width: 320, height: 220 }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleEnvelopeClick()
+                }}
+                style={{
+                  width: 340,
+                  height: 240,
+                  transformStyle: 'preserve-3d',
+                  pointerEvents: letterRevealed ? 'none' : 'auto',
+                }}
               >
+                {/* Envelope Shadow */}
+                <div
+                  className="absolute"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    background: 'rgba(0,0,0,0.4)',
+                    filter: 'blur(30px)',
+                    transform: 'translateY(20px) translateZ(-50px)',
+                    borderRadius: 24,
+                  }}
+                />
+
                 {/* Envelope Back */}
                 <div
                   className="absolute inset-0 rounded-2xl"
                   style={{
-                    background: 'linear-gradient(145deg, hsl(332 45% 75%), hsl(332 50% 65%))',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+                    background: 'linear-gradient(155deg, hsl(335 55% 72%) 0%, hsl(340 50% 62%) 50%, hsl(345 45% 55%) 100%)',
+                    boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.1)',
+                    transform: 'translateZ(0px)',
                   }}
                 />
 
-                {/* Envelope Flap (Top Triangle) */}
-                <motion.div
-                  className="absolute left-0 right-0 top-0 origin-top"
+                {/* Paper texture overlay */}
+                <div
+                  className="absolute inset-0 rounded-2xl pointer-events-none"
                   style={{
-                    height: 110,
+                    background: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
+                    opacity: 0.03,
+                    mixBlendMode: 'overlay',
+                  }}
+                />
+
+                {/* Letter Paper (slides out) */}
+                <motion.div
+                  className="absolute rounded-xl"
+                  style={{
+                    width: 300,
+                    height: 200,
+                    left: 20,
+                    background: 'linear-gradient(180deg, hsl(45 50% 97%) 0%, hsl(40 45% 94%) 100%)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    transform: 'translateZ(1px)',
+                    top: 30,
+                  }}
+                  animate={{
+                    y: letterRevealed ? -180 : 0,
+                    opacity: letterRevealed ? 0 : 1,
+                  }}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 80,
+                    damping: 18,
+                    mass: 0.8,
+                  }}
+                >
+                  {/* Lined paper effect */}
+                  <div className="absolute inset-0 overflow-hidden rounded-xl">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute w-full"
+                        style={{
+                          height: 1,
+                          background: 'hsl(220 30% 85% / 0.4)',
+                          top: 28 + i * 22,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+
+                {/* Envelope Flap (opens with 3D rotation) */}
+                <motion.div
+                  className="absolute left-0 right-0 origin-bottom"
+                  style={{
+                    top: 0,
+                    height: 130,
                     clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
-                    background: 'linear-gradient(180deg, hsl(332 50% 70%), hsl(332 55% 60%))',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    background: 'linear-gradient(180deg, hsl(338 52% 68%) 0%, hsl(342 48% 62%) 100%)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                    transformStyle: 'preserve-3d',
+                    transformOrigin: '50% 100%',
                     zIndex: 3,
                   }}
-                  animate={{ rotateX: letterRevealed ? 180 : 0 }}
-                  transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
-                />
+                  animate={{
+                    rotateX: letterRevealed ? -175 : 0,
+                  }}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 60,
+                    damping: 15,
+                    mass: 1.2,
+                  }}
+                >
+                  {/* Flap inner side */}
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
+                      background: 'linear-gradient(180deg, hsl(40 40% 90%) 0%, hsl(35 35% 85%) 100%)',
+                      transform: 'rotateX(180deg)',
+                      backfaceVisibility: 'hidden',
+                    }}
+                  />
+                </motion.div>
 
                 {/* Heart Seal */}
                 <motion.div
                   className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center"
                   style={{
-                    top: 65,
-                    width: 36,
-                    height: 36,
+                    top: 82,
+                    width: 44,
+                    height: 44,
                     borderRadius: '50%',
-                    background: 'hsl(350 70% 55%)',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                    background: 'radial-gradient(circle at 30% 30%, hsl(350 75% 58%) 0%, hsl(355 70% 48%) 100%)',
+                    boxShadow: '0 4px 12px rgba(200,50,80,0.4), inset 0 1px 0 rgba(255,255,255,0.3)',
                     zIndex: 4,
+                    transform: 'translateZ(2px)',
                   }}
                   animate={{
                     scale: letterRevealed ? 0 : 1,
                     opacity: letterRevealed ? 0 : 1,
+                    rotateZ: letterRevealed ? 180 : 0,
                   }}
-                  transition={{ duration: 0.3 }}
+                  transition={{
+                    duration: 0.4,
+                    ease: [0.4, 0, 0.2, 1],
+                  }}
                 >
-                  <span style={{ fontSize: 18 }}>❤️</span>
+                  <span style={{ fontSize: 20, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.2))' }}>❤️</span>
                 </motion.div>
 
                 {/* Envelope Front */}
                 <div
                   className="absolute left-0 right-0 bottom-0 rounded-b-2xl"
                   style={{
-                    height: 130,
-                    background: 'linear-gradient(180deg, hsl(332 48% 72%), hsl(332 52% 68%))',
+                    height: 145,
+                    background: 'linear-gradient(180deg, hsl(336 50% 70%) 0%, hsl(340 48% 65%) 100%)',
                     zIndex: 5,
-                    clipPath: 'polygon(0 30%, 50% 0, 100% 30%, 100% 100%, 0 100%)',
+                    clipPath: 'polygon(0 35%, 50% 0, 100% 35%, 100% 100%, 0 100%)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
+                    transform: 'translateZ(3px)',
                   }}
                 />
-              </div>
+              </motion.div>
 
-              {/* Instruction text */}
+              {/* Letter Card — zooms to center when revealed */}
+              <AnimatePresence>
+                {letterRevealed && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.4, y: 100, rotateX: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, y: 40 }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 100,
+                      damping: 18,
+                      mass: 1,
+                      delay: 0.15,
+                    }}
+                    className="absolute inset-0 flex flex-col items-center justify-center"
+                    style={{
+                      transform: 'translateZ(50px)',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      closeModal()
+                    }}
+                  >
+                    {/* Letter Card */}
+                    <motion.div
+                      className="relative flex flex-col items-center justify-center px-10 py-12 rounded-3xl overflow-hidden"
+                      style={{
+                        width: 'clamp(320px, 85vw, 520px)',
+                        background: 'linear-gradient(175deg, hsl(42 55% 97%) 0%, hsl(38 50% 94%) 50%, hsl(35 45% 91%) 100%)',
+                        boxShadow: `
+                          0 0 0 1px rgba(255,220,200,0.3),
+                          0 30px 100px rgba(0,0,0,0.35),
+                          0 10px 40px rgba(180,100,120,0.2)
+                        `,
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {/* Paper texture */}
+                      <div
+                        className="absolute inset-0 pointer-events-none"
+                        style={{
+                          background: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
+                          opacity: 0.04,
+                        }}
+                      />
+
+                      {/* Decorative corner flourishes */}
+                      <div
+                        className="absolute top-4 left-4 w-12 h-12 opacity-20"
+                        style={{
+                          borderTop: '2px solid hsl(340 50% 60%)',
+                          borderLeft: '2px solid hsl(340 50% 60%)',
+                          borderTopLeftRadius: 8,
+                        }}
+                      />
+                      <div
+                        className="absolute top-4 right-4 w-12 h-12 opacity-20"
+                        style={{
+                          borderTop: '2px solid hsl(340 50% 60%)',
+                          borderRight: '2px solid hsl(340 50% 60%)',
+                          borderTopRightRadius: 8,
+                        }}
+                      />
+                      <div
+                        className="absolute bottom-4 left-4 w-12 h-12 opacity-20"
+                        style={{
+                          borderBottom: '2px solid hsl(340 50% 60%)',
+                          borderLeft: '2px solid hsl(340 50% 60%)',
+                          borderBottomLeftRadius: 8,
+                        }}
+                      />
+                      <div
+                        className="absolute bottom-4 right-4 w-12 h-12 opacity-20"
+                        style={{
+                          borderBottom: '2px solid hsl(340 50% 60%)',
+                          borderRight: '2px solid hsl(340 50% 60%)',
+                          borderBottomRightRadius: 8,
+                        }}
+                      />
+
+                      {/* Heart icon */}
+                      <motion.span
+                        initial={{ scale: 0, rotate: -20 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{
+                          delay: 0.35,
+                          type: 'spring',
+                          stiffness: 300,
+                          damping: 15,
+                        }}
+                        className="mb-6 text-4xl"
+                        style={{ filter: 'drop-shadow(0 2px 4px rgba(200,100,120,0.3))' }}
+                      >
+                        💌
+                      </motion.span>
+
+                      {/* Letter text with typewriter effect */}
+                      <p
+                        className="text-center leading-relaxed relative"
+                        style={{
+                          fontFamily: 'var(--font-display)',
+                          fontSize: 'clamp(1.4rem, 4.5vw, 1.9rem)',
+                          color: 'hsl(325 45% 25%)',
+                          lineHeight: 1.6,
+                          minHeight: '3.2em',
+                        }}
+                      >
+                        {typedText}
+                        <motion.span
+                          animate={{ opacity: [1, 0] }}
+                          transition={{ duration: 0.5, repeat: Infinity }}
+                          className="inline-block w-0.5 h-6 ml-1 align-middle"
+                          style={{
+                            background: 'hsl(340 50% 50%)',
+                            display: typedText.length >= currentLetter.length ? 'none' : 'inline-block',
+                          }}
+                        />
+                      </p>
+
+                      {/* Signature line */}
+                      <motion.div
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ delay: 0.6, duration: 0.8, ease: 'easeOut' }}
+                        className="mt-8 w-24 h-px origin-center"
+                        style={{ background: 'hsl(340 40% 70% / 0.5)' }}
+                      />
+                    </motion.div>
+
+                    {/* Close hint */}
+                    <motion.p
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 0.6, y: 0 }}
+                      transition={{ delay: 1 }}
+                      className="mt-6 text-xs tracking-widest uppercase"
+                      style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 60% 85%)' }}
+                    >
+                      chạm để đóng
+                    </motion.p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Instruction text (only when envelope visible) */}
+            {!letterRevealed && (
               <motion.p
-                className="text-center mt-6 text-xs tracking-widest uppercase"
+                className="absolute bottom-16 left-1/2 -translate-x-1/2 text-xs tracking-widest uppercase"
                 style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 60% 85%)' }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.7 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.6 }}
               >
-                chạm để mở thư
+                chạm phong thư để mở
               </motion.p>
-            </motion.div>
-
-            {/* Letter — zooms into center of screen when revealed */}
-            <AnimatePresence>
-              {letterRevealed && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.55, y: 60 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.85, y: 20 }}
-                  transition={{ duration: 0.65, ease: [0.34, 1.3, 0.64, 1] }}
-                  className="absolute inset-0 flex flex-col items-center justify-center"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    closeModal()
-                  }}
-                >
-                  {/* Letter Card */}
-                  <motion.div
-                    className="relative flex flex-col items-center justify-center px-10 py-10 rounded-3xl"
-                    style={{
-                      width: 'clamp(300px, 80vw, 480px)',
-                      background: 'linear-gradient(180deg, hsl(40 60% 97%), hsl(35 50% 93%))',
-                      boxShadow: '0 24px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,200,180,0.15)',
-                    }}
-                    whileHover={{ scale: 1.02 }}
-                  >
-                    {/* Decorative top line */}
-                    <div
-                      className="absolute top-5 left-10 right-10 h-px"
-                      style={{ background: 'hsl(332 40% 80% / 0.4)' }}
-                    />
-
-                    {/* Heart icon */}
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.3, type: 'spring', stiffness: 300, damping: 15 }}
-                      className="mb-5 text-3xl"
-                    >
-                      💌
-                    </motion.span>
-
-                    <p
-                      className="text-center leading-relaxed"
-                      style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: 'clamp(1.3rem, 4vw, 1.7rem)',
-                        color: 'hsl(320 40% 22%)',
-                        lineHeight: 1.55,
-                      }}
-                    >
-                      {currentLetter}
-                    </p>
-
-                    {/* Decorative bottom line */}
-                    <div
-                      className="absolute bottom-5 left-10 right-10 h-px"
-                      style={{ background: 'hsl(332 40% 80% / 0.4)' }}
-                    />
-                  </motion.div>
-
-                  {/* Close hint */}
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.6 }}
-                    transition={{ delay: 0.7 }}
-                    className="mt-5 text-xs tracking-widest uppercase"
-                    style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 60% 85%)' }}
-                  >
-                    chạm để đóng
-                  </motion.p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
