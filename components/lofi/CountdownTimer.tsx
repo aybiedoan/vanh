@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-// THPT 2025 exam date: June 26, 2025 07:30 (Vietnam time GMT+7)
-const EXAM_DATE = new Date('2025-06-26T07:30:00+07:00')
+// Trạm tiếp sức mùa thi: June 11, 2026 07:30 (Vietnam time GMT+7)
+const EXAM_DATE = new Date('2026-06-11T07:30:00+07:00')
 
 type TimeUnit = { value: number; label: string }
 
@@ -78,7 +78,7 @@ export default function CountdownTimer() {
         className="tracking-widest text-xs uppercase mb-6 opacity-70"
         style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 80% 72%)' }}
       >
-        Đồng hồ đếm ngược Sĩ Tử 2025
+        Trạm tiếp sức mùa thi
       </p>
 
       {/* Numbers */}

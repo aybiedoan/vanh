@@ -84,21 +84,30 @@ export default function PlaylistWidget() {
       const tag = document.createElement('script')
       tag.id = 'yt-api-script'
       tag.src = 'https://www.youtube.com/iframe_api'
+      tag.async = true
       document.head.appendChild(tag)
     }
 
     window.onYouTubeIframeAPIReady = () => {
       if (!playerContainerRef.current) return
       playerRef.current = new window.YT.Player(playerContainerRef.current, {
-        videoId: '',
+        width: '100%',
+        height: '0',
+        videoId: tracks.length > 0 ? tracks[0].id : '',
         playerVars: {
           autoplay: 0,
           controls: 0,
           rel: 0,
           showinfo: 0,
           modestbranding: 1,
+          fs: 0,
         },
         events: {
+          onReady: () => {
+            if (tracks.length > 0) {
+              playerRef.current?.playVideo()
+            }
+          },
           onStateChange: (e) => {
             if (e.data === window.YT.PlayerState.ENDED) {
               setCurrentIdx((prev) => (prev + 1) % Math.max(tracks.length, 1))
@@ -107,14 +116,17 @@ export default function PlaylistWidget() {
         },
       })
     }
-  }, [])
+  }, [tracks.length])
 
   // Play current track
   useEffect(() => {
     if (!playerRef.current || tracks.length === 0) return
-    playerRef.current.loadVideoById(tracks[currentIdx % tracks.length].id)
-    playerRef.current.playVideo()
-  }, [currentIdx, tracks.length])
+    const trackId = tracks[currentIdx % tracks.length].id
+    playerRef.current.loadVideoById(trackId)
+    try {
+      playerRef.current.playVideo()
+    } catch {}
+  }, [currentIdx, tracks.length, tracks])
 
   const addTrack = async () => {
     const id = extractVideoId(inputVal.trim())

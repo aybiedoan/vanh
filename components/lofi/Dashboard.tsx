@@ -69,21 +69,8 @@ export default function Dashboard({ onOpenShowroom }: { onOpenShowroom: () => vo
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.45 }}
         transition={{ delay: 1.5, duration: 1 }}
-        className="absolute top-7 right-8 z-20 text-right"
-      >
-        <p
-          className="text-xs tracking-widest uppercase"
-          style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 60% 80%)' }}
-        >
-          lofi exam canvas
-        </p>
-        <p
-          className="text-xs opacity-60"
-          style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 40% 75%)' }}
-        >
-          for the bravest girl in the room
-        </p>
-      </motion.div>
+        className="absolute top-7 right-8 z-20 text-right pointer-events-none"
+      />
     </div>
   )
 }
