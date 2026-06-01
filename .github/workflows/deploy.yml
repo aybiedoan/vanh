@@ -2,7 +2,7 @@ name: Deploy Next.js site to Pages
 
 on:
   push:
-    branches: ["main"] # Hoặc đổi thành "master" nếu nhánh chính của bạn tên là master
+    branches: ["main"] # Đổi thành "master" nếu nhánh chính của bạn tên là master
 
 permissions:
   contents: read
@@ -15,21 +15,25 @@ concurrency:
 
 jobs:
   build:
-    runs-mode: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
-      name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-size: 20
-          cache: ${{ steps.detect-package-manager.outputs.manager }}
+          node-version: 20
+
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
+
       - name: Install dependencies
-        run: npm ci # Hoặc yarn install / pnpm i tùy theo manager bạn dùng
+        run: npm ci # Hoặc `npm install` nếu bạn không dùng file package-lock.json
+
       - name: Build with Next.js
         run: npm run build
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
