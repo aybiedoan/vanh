@@ -183,7 +183,17 @@ export default function PlaylistWidget() {
         },
         events: {
           onReady: () => {
-            // Player ready
+            // Auto-play first track if playlist exists
+            try {
+              const saved = localStorage.getItem('lofi-playlist')
+              if (saved) {
+                const savedTracks = JSON.parse(saved) as Track[]
+                if (savedTracks.length > 0) {
+                  playerRef.current?.loadVideoById(savedTracks[0].id)
+                  setTimeout(() => playerRef.current?.playVideo(), 200)
+                }
+              }
+            } catch {}
           },
           onStateChange: (e) => {
             if (e.data === window.YT.PlayerState.PLAYING) {
@@ -269,8 +279,41 @@ export default function PlaylistWidget() {
     } catch {}
   }
 
-  const skipNext = () => setCurrentIdx((prev) => (prev + 1) % Math.max(tracks.length, 1))
-  const skipPrev = () => setCurrentIdx((prev) => (prev - 1 + tracks.length) % Math.max(tracks.length, 1))
+  const skipNext = () => {
+    if (tracks.length === 0) return
+    if (loopMode === 'shuffle') {
+      if (tracks.length === 1) {
+        playerRef.current?.seekTo(0, true)
+        playerRef.current?.playVideo()
+      } else {
+        let nextIdx = Math.floor(Math.random() * tracks.length)
+        while (nextIdx === currentIdx) {
+          nextIdx = Math.floor(Math.random() * tracks.length)
+        }
+        setCurrentIdx(nextIdx)
+      }
+    } else {
+      setCurrentIdx((prev) => (prev + 1) % tracks.length)
+    }
+  }
+
+  const skipPrev = () => {
+    if (tracks.length === 0) return
+    if (loopMode === 'shuffle') {
+      if (tracks.length === 1) {
+        playerRef.current?.seekTo(0, true)
+        playerRef.current?.playVideo()
+      } else {
+        let nextIdx = Math.floor(Math.random() * tracks.length)
+        while (nextIdx === currentIdx) {
+          nextIdx = Math.floor(Math.random() * tracks.length)
+        }
+        setCurrentIdx(nextIdx)
+      }
+    } else {
+      setCurrentIdx((prev) => (prev - 1 + tracks.length) % tracks.length)
+    }
+  }
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!playerRef.current || duration <= 0) return
