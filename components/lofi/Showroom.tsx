@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion'
-import { ArrowLeft, X, Play, Volume2, VolumeX } from 'lucide-react'
+import { ArrowLeft, X, Play, Volume2, VolumeX, Volume1 } from 'lucide-react'
 import { MEMORIES, GREETING_LINES, getFallbackImage, type MemoryItem } from '@/data/showroom-data'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -198,7 +198,7 @@ function TypewriterText({ text, delay = 0 }: { text: string; delay?: number }) {
 }
 
 // ─── 3D Photo Carousel ────────────────────────────────────────────────────────
-// Slows rotation, highlights current photo, syncs with greeting line index
+// Highlights frontmost photo dynamically based on rotation angle
 
 function PhotoCarousel3D({ activeIndex }: { activeIndex: number }) {
   const rotationRef = useRef(0)
@@ -237,6 +237,25 @@ function PhotoCarousel3D({ activeIndex }: { activeIndex: number }) {
     rotationRef.current += diff
   }, [activeIndex, angleStep])
 
+  // Determine which photo is closest to front (z closest to +radius)
+  const getFrontIndex = useCallback(() => {
+    const normalizedRot = ((rotation % 360) + 360) % 360
+    let closestIdx = 0
+    let smallestAngleDiff = 360
+
+    for (let i = 0; i < count; i++) {
+      const photoAngle = ((angleStep * i - normalizedRot) % 360 + 360) % 360
+      const diff = photoAngle > 180 ? 360 - photoAngle : photoAngle
+      if (diff < smallestAngleDiff) {
+        smallestAngleDiff = diff
+        closestIdx = i
+      }
+    }
+    return closestIdx
+  }, [rotation, count, angleStep])
+
+  const frontIndex = getFrontIndex()
+
   return (
     <div
       className="relative"
@@ -262,35 +281,34 @@ function PhotoCarousel3D({ activeIndex }: { activeIndex: number }) {
           const x = Math.sin(rad) * radius
           const z = Math.cos(rad) * radius
 
-          // Determine if this photo is "front" (closest to viewer)
-          const normalizedRot = ((rotation % 360) + 360) % 360
-          const photoAngle = ((angle - normalizedRot) % 360 + 360) % 360
-          const isActive = photoAngle < 30 || photoAngle > 330
+          // Highlight the photo that is currently at the front
+          const isFront = idx === frontIndex
 
           return (
             <div
               key={idx}
-              className="absolute transition-all"
+              className="absolute"
               style={{
                 transform: `translateX(${x}px) translateZ(${z}px) rotateY(${-angle}deg)`,
                 transformStyle: 'preserve-3d',
+                transition: 'all 0.3s ease-out',
               }}
             >
               <div
                 style={{
-                  width: isActive ? 130 : 90,
-                  height: isActive ? 170 : 118,
+                  width: isFront ? 130 : 90,
+                  height: isFront ? 170 : 118,
                   borderRadius: 10,
                   overflow: 'hidden',
-                  border: isActive
+                  border: isFront
                     ? '2px solid rgba(255,200,230,0.8)'
                     : '1.5px solid rgba(255,200,230,0.2)',
-                  boxShadow: isActive
+                  boxShadow: isFront
                     ? '0 0 32px rgba(255,160,210,0.6), 0 12px 40px rgba(0,0,0,0.5)'
                     : '0 6px 20px rgba(0,0,0,0.35)',
                   background: 'rgba(40,20,40,0.6)',
-                  transition: 'width 0.5s ease, height 0.5s ease, box-shadow 0.5s ease',
-                  filter: isActive ? 'none' : 'brightness(0.65)',
+                  transition: 'width 0.4s ease, height 0.4s ease, box-shadow 0.4s ease, border 0.4s ease, filter 0.4s ease',
+                  filter: isFront ? 'none' : 'brightness(0.6)',
                 }}
               >
                 <PreloadedImage
@@ -323,9 +341,11 @@ type LineEntry = {
 
 function GreetingView({
   onComplete,
+  onBack,
   musicEnabled,
 }: {
   onComplete: () => void
+  onBack: () => void
   musicEnabled: boolean
 }) {
   const [lineIdx, setLineIdx] = useState(0)
@@ -395,6 +415,32 @@ function GreetingView({
     >
       {/* Static star field */}
       <StarField count={300} seed={55} />
+
+      {/* Back button */}
+      <motion.button
+        onClick={onBack}
+        whileHover={{ x: -3 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="absolute top-6 left-6 flex items-center gap-2"
+        style={{
+          background: 'rgba(55,25,55,0.6)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,175,220,0.18)',
+          borderRadius: 40,
+          padding: '8px 18px',
+          fontFamily: 'var(--font-body)',
+          fontSize: '0.82rem',
+          color: 'hsl(320 55% 84%)',
+          cursor: 'pointer',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
+          zIndex: 50,
+        }}
+      >
+        <ArrowLeft size={14} />
+        <span>Tro ve</span>
+      </motion.button>
 
       {/* Carousel */}
       <div className="w-full mb-10 flex-shrink-0">
@@ -628,7 +674,7 @@ function StarSkyView({
     canvas.width = dimensions.width
     canvas.height = dimensions.height
 
-    // Night sky background — deep purple/pink
+    // Night sky background ��� deep purple/pink
     const bg = ctx.createLinearGradient(0, 0, 0, dimensions.height)
     bg.addColorStop(0, '#0f0618')
     bg.addColorStop(0.3, '#1c0b28')
