@@ -2,7 +2,37 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trash2, Music2, Play, Pause, SkipForward, SkipBack, Repeat, Repeat1, Shuffle } from 'lucide-react'
+import { Plus, Trash2, Music2, Play, Pause, SkipForward, SkipBack, Repeat, Repeat1, Shuffle, Volume2, Volume1, VolumeX } from 'lucide-react'
+
+// Add styles for range input
+const styleSheet = `
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: hsl(332 80% 70%);
+    cursor: pointer;
+    box-shadow: 0 0 4px hsl(332 80% 70% / 0.5);
+  }
+  
+  input[type='range']::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: hsl(332 80% 70%);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 4px hsl(332 80% 70% / 0.5);
+  }
+`
+
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style')
+  style.textContent = styleSheet
+  document.head.appendChild(style)
+}
 
 declare global {
   interface Window {
@@ -28,6 +58,7 @@ declare global {
         getDuration: () => number
         seekTo: (seconds: number, allowSeekAhead: boolean) => void
         getPlayerState: () => number
+        setVolume: (volume: number) => void
       }
       PlayerState: { ENDED: number; PLAYING: number; PAUSED: number }
     }
@@ -37,6 +68,46 @@ declare global {
 
 type Track = { id: string; title: string; url: string }
 type LoopMode = 'all' | 'one' | 'shuffle'
+
+// Default playlist for first-time users
+const DEFAULT_TRACKS = [
+  {
+    id: '6L7AB6w2dgI',
+    url: 'https://www.youtube.com/watch?v=6L7AB6w2dgI',
+    title: 'Loading...',
+  },
+]
+
+// Cookie helpers
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+  try {
+    const nameEQ = name + '='
+    const cookies = document.cookie.split(';')
+    for (let cookie of cookies) {
+      cookie = cookie.trim()
+      if (cookie.startsWith(nameEQ)) {
+        return decodeURIComponent(cookie.substring(nameEQ.length))
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to read cookie:', e)
+  }
+  return null
+}
+
+function setCookie(name: string, value: string, days: number = 365): void {
+  if (typeof document === 'undefined') return
+  try {
+    const date = new Date()
+    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000)
+    const expires = `expires=${date.toUTCString()}`
+    const cookieValue = `${name}=${encodeURIComponent(value)};${expires};path=/;SameSite=Lax`
+    document.cookie = cookieValue
+  } catch (e) {
+    console.warn('Failed to set cookie:', e)
+  }
+}
 
 function extractVideoId(url: string): string | null {
   const patterns = [
@@ -109,6 +180,9 @@ export default function PlaylistWidget() {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [loopMode, setLoopMode] = useState<LoopMode>('all')
+  const [volume, setVolume] = useState(70)
+  const [showVolumeControl, setShowVolumeControl] = useState(false)
+  const [playerReady, setPlayerReady] = useState(false)
   const playerRef = useRef<ReturnType<typeof window.YT.Player> | null>(null)
   const playerContainerRef = useRef<HTMLDivElement>(null)
   const ytApiLoaded = useRef(false)
@@ -139,17 +213,42 @@ export default function PlaylistWidget() {
 
   useEffect(() => () => stopProgressPoll(), [stopProgressPoll])
 
-  // Load from localStorage
+  // Load from cookies on mount, or initialize with default playlist
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('lofi-playlist')
-      if (saved) setTracks(JSON.parse(saved))
-    } catch {}
+      const saved = getCookie('lofi-playlist')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTracks(parsed)
+          // Auto-play first track
+          setTimeout(() => setCurrentIdx(0), 100)
+          return
+        }
+      }
+      // First time: initialize with default playlist
+      const initDefault = async () => {
+        const defaultTracks: Track[] = []
+        for (const track of DEFAULT_TRACKS) {
+          const title = await fetchTitle(track.id)
+          defaultTracks.push({ ...track, title })
+        }
+        setTracks(defaultTracks)
+        setCookie('lofi-playlist', JSON.stringify(defaultTracks))
+        // Auto-play first track
+        setTimeout(() => setCurrentIdx(0), 100)
+      }
+      initDefault()
+    } catch (e) {
+      console.warn('Failed to load playlist from cookie:', e)
+    }
   }, [])
 
-  // Save to localStorage
+  // Save to cookies whenever tracks change
   useEffect(() => {
-    localStorage.setItem('lofi-playlist', JSON.stringify(tracks))
+    if (tracks.length > 0) {
+      setCookie('lofi-playlist', JSON.stringify(tracks))
+    }
   }, [tracks])
 
   // Load YouTube API
@@ -183,9 +282,10 @@ export default function PlaylistWidget() {
         },
         events: {
           onReady: () => {
+            setPlayerReady(true)
             // Auto-play first track if playlist exists
             try {
-              const saved = localStorage.getItem('lofi-playlist')
+              const saved = getCookie('lofi-playlist')
               if (saved) {
                 const savedTracks = JSON.parse(saved) as Track[]
                 if (savedTracks.length > 0) {
@@ -216,19 +316,27 @@ export default function PlaylistWidget() {
 
   // Load & play track when idx changes
   useEffect(() => {
-    if (!playerRef.current || tracks.length === 0) return
+    if (!playerRef.current || !playerReady || tracks.length === 0) return
     const trackId = tracks[currentIdx % tracks.length].id
     try {
       playerRef.current.loadVideoById(trackId)
-      setTimeout(() => {
+      // Wait a bit longer for video to load before playing
+      const timer = setTimeout(() => {
         try {
-          playerRef.current?.playVideo()
-        } catch {}
-      }, 100)
+          if (playerRef.current) {
+            playerRef.current.playVideo()
+          }
+        } catch (e) {
+          console.warn('Failed to play video:', e)
+        }
+      }, 200)
       setCurrentTime(0)
       setDuration(0)
-    } catch {}
-  }, [currentIdx])
+      return () => clearTimeout(timer)
+    } catch (e) {
+      console.warn('Failed to load video:', e)
+    }
+  }, [currentIdx, playerReady])
 
   // Handle track end based on loop mode
   const handleTrackEnd = useCallback(() => {
@@ -332,16 +440,15 @@ export default function PlaylistWidget() {
     setIsLoading(true)
     const title = await fetchTitle(id)
     const newTrack: Track = { id, title, url: inputVal.trim() }
+    const wasEmpty = tracks.length === 0
     setTracks((prev) => {
       const next = [...prev, newTrack]
-      // Auto-play first added track
-      if (prev.length === 0) {
+      // If playlist was empty, auto-play will be triggered by useEffect on currentIdx change
+      if (wasEmpty) {
+        // Trigger load by setting currentIdx to 0
         setTimeout(() => {
-          if (playerRef.current) {
-            playerRef.current.loadVideoById(id)
-            playerRef.current.playVideo()
-          }
-        }, 300)
+          setCurrentIdx(0)
+        }, 100)
       }
       return next
     })
@@ -364,6 +471,26 @@ export default function PlaylistWidget() {
       setCurrentIdx(idx)
     }
   }
+
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume)
+    if (playerRef.current) {
+      try {
+        playerRef.current.setVolume(newVolume)
+      } catch {}
+    }
+  }
+
+  // Close volume control on outside click
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowVolumeControl(false)
+    }
+    if (showVolumeControl) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showVolumeControl])
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0
   const currentTrack = tracks[currentIdx % Math.max(tracks.length, 1)]
@@ -448,6 +575,7 @@ export default function PlaylistWidget() {
                 <Repeat size={14} />
               )}
             </button>
+
             <button
               onClick={skipPrev}
               className="hover:scale-110 transition-all"
@@ -464,6 +592,7 @@ export default function PlaylistWidget() {
             >
               {isPlaying ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
             </motion.button>
+
             <button
               onClick={skipNext}
               className="hover:scale-110 transition-all"
@@ -471,8 +600,50 @@ export default function PlaylistWidget() {
             >
               <SkipForward size={14} />
             </button>
-            {/* Spacer for symmetry */}
-            <div style={{ width: 14 }} />
+            
+            {/* Volume control — right side */}
+            <div className="relative inline-flex" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setShowVolumeControl(!showVolumeControl)}
+                className="hover:scale-110 transition-all inline-flex items-center justify-center"
+                style={{ color: 'hsl(332 80% 85%)', opacity: 0.7 }}
+                title="Điều chỉnh âm lượng"
+              >
+                {volume === 0 ? (
+                  <VolumeX size={14} />
+                ) : volume < 50 ? (
+                  <Volume1 size={14} />
+                ) : (
+                  <Volume2 size={14} />
+                )}
+              </button>
+              
+              {/* Volume slider popup */}
+              {showVolumeControl && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 flex flex-col items-center gap-2 p-2 rounded-lg" 
+                  style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={volume}
+                    onChange={(e) => handleVolumeChange(Number(e.target.value))}
+                    className="w-24 h-1 rounded-full cursor-pointer"
+                    style={{
+                      appearance: 'none',
+                      background: 'rgba(255,255,255,0.2)',
+                      outline: 'none',
+                    }}
+                    onInput={(e) => (e.currentTarget.style.background = `linear-gradient(to right, hsl(332 80% 70%) 0%, hsl(332 80% 70%) ${(Number(e.currentTarget.value) / 100) * 100}%, rgba(255,255,255,0.2) ${(Number(e.currentTarget.value) / 100) * 100}%, rgba(255,255,255,0.2) 100%)`)}
+                  />
+                  <span className="text-xs" style={{ color: 'hsl(332 90% 80%)', fontFamily: 'var(--font-body)' }}>
+                    {volume}%
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

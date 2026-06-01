@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion'
-import { ArrowLeft, X, Play, Volume2, VolumeX, Volume1 } from 'lucide-react'
+import { ArrowLeft, X, Play, Volume2, VolumeX } from 'lucide-react'
 import { MEMORIES, GREETING_LINES, getFallbackImage, type MemoryItem } from '@/data/showroom-data'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -198,25 +198,24 @@ function TypewriterText({ text, delay = 0 }: { text: string; delay?: number }) {
 }
 
 // ─── 3D Photo Carousel ────────────────────────────────────────────────────────
-// Highlights frontmost photo dynamically based on rotation angle
+// Logic độc lập hoàn toàn với chữ — Tự động tính toán ảnh chính diện để mở phẳng
 
 function PhotoCarousel3D({ activeIndex }: { activeIndex: number }) {
   const rotationRef = useRef(0)
   const [rotation, setRotation] = useState(0)
-  const lastActiveRef = useRef(activeIndex)
   const photos = MEMORIES
   const count = photos.length
   const angleStep = 360 / count
   const radius = typeof window !== 'undefined' ? Math.min(260, window.innerWidth * 0.32) : 260
 
-  // Slow auto-rotation
+  // 1. Tự động quay chậm liên tục
   useEffect(() => {
     let frame: number
     let lastTime = performance.now()
     const animate = (now: number) => {
       const dt = Math.min(now - lastTime, 50)
       lastTime = now
-      rotationRef.current += 0.04 * (dt / 16.67) // ~0.04 deg/frame at 60fps
+      rotationRef.current += 0.04 * (dt / 16.67)
       setRotation(rotationRef.current)
       frame = requestAnimationFrame(animate)
     }
@@ -224,30 +223,22 @@ function PhotoCarousel3D({ activeIndex }: { activeIndex: number }) {
     return () => cancelAnimationFrame(frame)
   }, [])
 
-  // When activeIndex changes, snap rotation to bring that photo to the front
-  useEffect(() => {
-    if (lastActiveRef.current === activeIndex) return
-    lastActiveRef.current = activeIndex
-    // Target angle for activeIndex to be at front (angle = 0 in world space)
-    const targetAngle = -angleStep * activeIndex
-    // Find shortest path
-    const current = rotationRef.current % 360
-    let diff = (targetAngle - current + 360) % 360
-    if (diff > 180) diff -= 360
-    rotationRef.current += diff
-  }, [activeIndex, angleStep])
-
-  // Determine which photo is closest to front (z closest to +radius)
+  // 2. Tính toán xem ảnh nào đang lướt qua chính diện
   const getFrontIndex = useCallback(() => {
-    const normalizedRot = ((rotation % 360) + 360) % 360
     let closestIdx = 0
-    let smallestAngleDiff = 360
+    let smallestAngleDiff = 180
 
     for (let i = 0; i < count; i++) {
-      const photoAngle = ((angleStep * i - normalizedRot) % 360 + 360) % 360
-      const diff = photoAngle > 180 ? 360 - photoAngle : photoAngle
-      if (diff < smallestAngleDiff) {
-        smallestAngleDiff = diff
+      const photoWorldAngle = (angleStep * i + rotation) % 360
+      const normalizedAngle = (photoWorldAngle + 360) % 360
+      
+      let angleDiff = normalizedAngle
+      if (angleDiff > 180) {
+        angleDiff = 360 - angleDiff
+      }
+      
+      if (angleDiff < smallestAngleDiff) {
+        smallestAngleDiff = angleDiff
         closestIdx = i
       }
     }
@@ -280,18 +271,27 @@ function PhotoCarousel3D({ activeIndex }: { activeIndex: number }) {
           const rad = (angle * Math.PI) / 180
           const x = Math.sin(rad) * radius
           const z = Math.cos(rad) * radius
-
-          // Highlight the photo that is currently at the front
+          
           const isFront = idx === frontIndex
+
+          let diff = (-rotation - (-angle)) % 360
+          if (diff > 180) diff -= 360
+          if (diff < -180) diff += 360
+
+          const targetRotateY = isFront ? (-angle + diff) : -angle
+
+          // THAY ĐỔI TẠI ĐÂY: Tăng từ 35 lên 75 để đẩy ảnh nổi bật lên hẳn phía trước,
+          // tạo khoảng cách an toàn tuyệt đối, không cho ảnh bên cạnh đâm xuyên qua.
+          const extraZ = isFront ? 75 : 0
 
           return (
             <div
               key={idx}
               className="absolute"
               style={{
-                transform: `translateX(${x}px) translateZ(${z}px) rotateY(${-angle}deg)`,
+                transform: `translateX(${x}px) translateZ(${z + extraZ}px) rotateY(${targetRotateY}deg)`,
                 transformStyle: 'preserve-3d',
-                transition: 'all 0.3s ease-out',
+                transition: 'transform 0.4s ease-out', 
               }}
             >
               <div
@@ -328,15 +328,15 @@ function PhotoCarousel3D({ activeIndex }: { activeIndex: number }) {
 
 // ─── Greeting View ────────────────────────────────────────────────────────────
 
-const VISIBLE_LINE_COUNT = 2   // how many lines shown at once
-const CHAR_SPEED = 58           // ms per character
-const LINE_PAUSE = 900          // ms after line finishes before advancing
+const VISIBLE_LINE_COUNT = 2
+const CHAR_SPEED = 58
+const LINE_PAUSE = 900
 
 type LineEntry = {
-  id: number       // unique key
-  lineIdx: number  // index into GREETING_LINES
-  text: string     // partial/complete text
-  charIdx: number  // chars typed so far
+  id: number
+  lineIdx: number
+  text: string
+  charIdx: number
 }
 
 function GreetingView({
@@ -354,8 +354,6 @@ function GreetingView({
   const entryKeyRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  // carouselIdx tracks which photo to highlight — advances every line
   const [carouselIdx, setCarouselIdx] = useState(0)
 
   const clear = () => {
@@ -376,13 +374,12 @@ function GreetingView({
     const lineText = GREETING_LINES[lineIdx]
     const id = entryKeyRef.current++
 
-    // Push new entry (trim to VISIBLE_LINE_COUNT)
     setEntries((prev) => {
       const next = [...prev, { id, lineIdx, text: '', charIdx: 0 }]
       return next.length > VISIBLE_LINE_COUNT ? next.slice(next.length - VISIBLE_LINE_COUNT) : next
     })
 
-    // Advance carousel photo
+    // Ảnh xoay ngay lập tức khi dòng chữ mới vừa được khởi tạo
     setCarouselIdx(lineIdx % MEMORIES.length)
 
     let charIdx = 0
@@ -413,12 +410,13 @@ function GreetingView({
         background: 'linear-gradient(180deg, #130818 0%, #220f30 35%, #2e1240 65%, #3a1548 100%)',
       }}
     >
-      {/* Static star field */}
       <StarField count={300} seed={55} />
 
-      {/* Back button */}
       <motion.button
-        onClick={onBack}
+        onClick={(e) => {
+          e.preventDefault()
+          onBack()
+        }}
         whileHover={{ x: -3 }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -439,42 +437,56 @@ function GreetingView({
         }}
       >
         <ArrowLeft size={14} />
-        <span>Tro ve</span>
+        <span>Trở về</span>
       </motion.button>
 
-      {/* Carousel */}
       <div className="w-full mb-10 flex-shrink-0">
         <PhotoCarousel3D activeIndex={carouselIdx} />
       </div>
 
-      {/* Text area — fixed height, lines slide up and out */}
       <div
         className="relative z-10 flex flex-col items-center justify-end px-6"
         style={{ minHeight: 130, maxWidth: 580, width: '100%' }}
       >
         <AnimatePresence mode="popLayout" initial={false}>
-          {entries.map((entry) => {
+          {entries.map((entry, index) => {
             const isTyping = entry.charIdx < GREETING_LINES[entry.lineIdx]?.length
+            
+            // NÂNG CẤP: Xác định dòng chữ mới nhất (cuối mảng)
+            const isLatest = index === entries.length - 1
+
             return (
               <motion.p
                 key={entry.id}
                 layout
                 initial={{ opacity: 0, y: 32, filter: 'blur(4px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                // NÂNG CẤP: Dòng mới giữ nguyên opacity 1, dòng cũ giảm còn 0.35
+                animate={{ 
+                  opacity: isLatest ? 1 : 0.35, 
+                  y: 0, 
+                  filter: 'blur(0px)' 
+                }}
                 exit={{
                   opacity: 0,
                   y: -28,
                   filter: 'blur(3px)',
                   transition: { duration: 0.55, ease: [0.4, 0, 0.2, 1] },
                 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ 
+                  opacity: { duration: 0.4 },
+                  layout: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+                  default: { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
+                }}
                 className="text-center w-full"
                 style={{
                   fontFamily: 'var(--font-display)',
                   fontSize: 'clamp(1.3rem, 4.5vw, 1.95rem)',
                   color: 'hsl(318 40% 88%)',
                   lineHeight: 1.5,
-                  textShadow: '0 2px 20px rgba(200,100,160,0.35)',
+                  // NÂNG CẤP: Giảm textShadow đối với dòng text cũ
+                  textShadow: isLatest 
+                    ? '0 2px 20px rgba(200,100,160,0.35)' 
+                    : '0 1px 10px rgba(200,100,160,0.15)',
                   marginBottom: '0.55rem',
                 }}
               >
@@ -493,7 +505,6 @@ function GreetingView({
         </AnimatePresence>
       </div>
 
-      {/* Transition message */}
       <AnimatePresence>
         {done && (
           <motion.div
@@ -554,11 +565,8 @@ function StarField({ count, seed }: { count: number; seed: number }) {
 }
 
 // ─── Audio Player Hook ────────────────────────────────────────────────────────
-// Plays a soft ambient track. Track URL is easy to swap below.
 
-// ── MUSIC TRACK — change this URL to swap the background music ──
-const AMBIENT_MUSIC_URL =
-  'https://cdn.pixabay.com/audio/2023/02/20/audio_15e0e8a32f.mp3'
+const AMBIENT_MUSIC_URL = 'https://nkfwybiufcddmxyavcba.supabase.co/storage/v1/object/sign/Aybie/music.mp3?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wZDE0MDQ2Yi1kOTUwLTQ1ZjMtYTRjNC1iMjY2MWMxMzVlYTEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJBeWJpZS9tdXNpYy5tcDMiLCJpYXQiOjE3ODAzMjgyMjIsImV4cCI6MTg3NDkzNjIyMn0.yp0oaoWXuWiuzvWv6HHKeCcTe6OU71_WkLrfG6UM18E'
 
 function useAmbientMusic() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -569,7 +577,7 @@ function useAmbientMusic() {
     if (!audioRef.current) {
       const audio = new Audio(AMBIENT_MUSIC_URL)
       audio.loop = true
-      audio.volume = 0.28
+      audio.volume = 1
       audioRef.current = audio
     }
     audioRef.current.play().catch(() => {})
@@ -620,7 +628,6 @@ function StarSkyView({
   const TOTAL = MEMORIES.length
   const MAGNETIC_RADIUS = 55
 
-  // Preload images in batches of 5
   useEffect(() => {
     const load = (start: number) => {
       const end = Math.min(start + 5, MEMORIES.length)
@@ -638,7 +645,6 @@ function StarSkyView({
     return () => timers.forEach(clearTimeout)
   }, [])
 
-  // Resize
   useEffect(() => {
     const onResize = () => {
       const w = window.innerWidth
@@ -653,7 +659,6 @@ function StarSkyView({
     return () => window.removeEventListener('resize', onResize)
   }, [TOTAL])
 
-  // Mouse
   useEffect(() => {
     const fn = (e: MouseEvent) => { mouseX.set(e.clientX); mouseY.set(e.clientY) }
     window.addEventListener('mousemove', fn)
@@ -674,7 +679,6 @@ function StarSkyView({
     canvas.width = dimensions.width
     canvas.height = dimensions.height
 
-    // Night sky background ��� deep purple/pink
     const bg = ctx.createLinearGradient(0, 0, 0, dimensions.height)
     bg.addColorStop(0, '#0f0618')
     bg.addColorStop(0.3, '#1c0b28')
@@ -683,7 +687,6 @@ function StarSkyView({
     ctx.fillStyle = bg
     ctx.fillRect(0, 0, dimensions.width, dimensions.height)
 
-    // Nebula blobs
     const blobs = [
       { cx: 0.18, cy: 0.28, r: 0.38, c: 'rgba(110,35,90,0.1)' },
       { cx: 0.78, cy: 0.68, r: 0.32, c: 'rgba(140,50,110,0.09)' },
@@ -700,7 +703,6 @@ function StarSkyView({
       ctx.fillRect(0, 0, dimensions.width, dimensions.height)
     })
 
-    // Decorative stars — no twinkling, static
     decorativeStars.forEach((s) => {
       ctx.beginPath()
       ctx.arc(s.x, s.y, s.size / 2, 0, Math.PI * 2)
@@ -708,7 +710,6 @@ function StarSkyView({
       ctx.fill()
     })
 
-    // Constellation lines on hover
     if (hoveredStar !== null && stars[hoveredStar]) {
       const from = stars[hoveredStar]
       ;(nearestCache[hoveredStar] || []).forEach((ni) => {
@@ -732,7 +733,6 @@ function StarSkyView({
 
   useEffect(() => { drawCanvas() }, [drawCanvas])
 
-  // Floating + magnetic animation
   useEffect(() => {
     let frame: number
     const animate = () => {
@@ -760,7 +760,6 @@ function StarSkyView({
     return () => cancelAnimationFrame(frame)
   }, [smoothMouseX, smoothMouseY])
 
-  // Hover detection
   useEffect(() => {
     if (isMobile) return
     const mx = smoothMouseX.get()
@@ -787,7 +786,6 @@ function StarSkyView({
     >
       <canvas ref={canvasRef} className="absolute inset-0" style={{ zIndex: 0 }} />
 
-      {/* Stars */}
       <div className="absolute inset-0" style={{ zIndex: 10 }}>
         {stars.map((star, idx) => {
           const isHovered = hoveredStar === idx
@@ -802,12 +800,18 @@ function StarSkyView({
               <motion.div
                 className="rounded-full"
                 animate={{
-                  scale: isHovered ? 1.7 : 1,
+                  scale: isHovered ? 1.7 : [1, 1.15, 0.95, 1],
+                  opacity: isHovered ? 1 : [0.7, 1, 0.75, 1],
                   boxShadow: isHovered
                     ? '0 0 18px 7px rgba(255,195,230,0.9), 0 0 36px 14px rgba(255,145,200,0.45)'
                     : '0 0 10px 3px rgba(255,215,240,0.55)',
                 }}
-                transition={{ duration: 0.28 }}
+                transition={{
+                  duration: isHovered ? 0.28 : 3.5,
+                  repeat: isHovered ? 0 : Infinity,
+                  delay: (idx * 0.15) % 2,
+                  ease: 'easeInOut',
+                }}
                 style={{ width: 10, height: 10, background: 'white' }}
               />
               <AnimatePresence>
@@ -847,7 +851,6 @@ function StarSkyView({
         })}
       </div>
 
-      {/* Back button */}
       <motion.button
         onClick={onBack}
         whileHover={{ x: -3 }}
@@ -873,9 +876,7 @@ function StarSkyView({
         <span>Trở về</span>
       </motion.button>
 
-      {/* Right-side controls */}
       <div className="absolute top-6 right-6 flex items-center gap-2" style={{ zIndex: 50 }}>
-        {/* Mute button */}
         <motion.button
           onClick={onToggleMute}
           whileHover={{ scale: 1.08 }}
@@ -899,7 +900,6 @@ function StarSkyView({
           {musicMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
         </motion.button>
 
-        {/* Replay greeting */}
         <motion.button
           onClick={onReplayGreeting}
           whileHover={{ scale: 1.04 }}
@@ -926,7 +926,6 @@ function StarSkyView({
         </motion.button>
       </div>
 
-      {/* Photo Modal */}
       <AnimatePresence>
         {selectedStar !== null && (
           <motion.div
@@ -942,7 +941,6 @@ function StarSkyView({
             }}
             onClick={() => setSelectedStar(null)}
           >
-            {/* Ripple */}
             <motion.div
               initial={{ scale: 0, opacity: 0.7 }}
               animate={{ scale: 5, opacity: 0 }}
@@ -1031,10 +1029,23 @@ function StarSkyView({
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function Showroom({ onBack }: { onBack: () => void }) {
+export default function Showroom({ onBack: onBackParent }: { onBack: () => void }) {
   const [phase, setPhase] = useState<ViewPhase>('greeting')
   const [hasSeenGreeting, setHasSeenGreeting] = useState(false)
   const { start, toggleMute, muted, started } = useAmbientMusic()
+
+  // Handle back button - stop showroom music and return
+  const onBack = useCallback(() => {
+    // Stop the ambient music when leaving showroom
+    try {
+      const audio = document.querySelector('audio') as HTMLAudioElement
+      if (audio) {
+        audio.pause()
+        audio.currentTime = 0
+      }
+    } catch {}
+    onBackParent()
+  }, [onBackParent])
 
   useEffect(() => {
     try {
@@ -1045,7 +1056,6 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
     } catch (_) {}
   }, [])
 
-  // Start music on first user interaction
   const handleStart = () => {
     if (!started) start()
   }
@@ -1060,6 +1070,11 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
     if (!started) start()
   }
 
+  // Auto-play music when entering showroom
+  useEffect(() => {
+    start()
+  }, [])
+
   return (
     <div onClick={handleStart}>
       <AnimatePresence mode="wait">
@@ -1067,6 +1082,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
           <GreetingView
             key={hasSeenGreeting ? 'greeting-replay' : 'greeting-first'}
             onComplete={handleGreetingComplete}
+            onBack={onBack}
             musicEnabled={started}
           />
         ) : (
