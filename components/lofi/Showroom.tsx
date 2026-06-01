@@ -17,6 +17,13 @@ type Star = {
   floatSpeed: number
 }
 
+type DecorativeStar = {
+  x: number
+  y: number
+  size: number
+  opacity: number
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function generateStars(count: number, width: number, height: number): Star[] {
@@ -37,6 +44,19 @@ function generateStars(count: number, width: number, height: number): Star[] {
     })
   }
 
+  return stars
+}
+
+function generateDecorativeStars(count: number, width: number, height: number): DecorativeStar[] {
+  const stars: DecorativeStar[] = []
+  for (let i = 0; i < count; i++) {
+    stars.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      size: 0.5 + Math.random() * 2, // Random size 0.5-2.5px
+      opacity: 0.3 + Math.random() * 0.5, // Random opacity 0.3-0.8
+    })
+  }
   return stars
 }
 
@@ -62,7 +82,7 @@ function ModalStardust() {
           style={{
             width: Math.random() * 3 + 1,
             height: Math.random() * 3 + 1,
-            background: `hsla(${220 + Math.random() * 40}, 70%, 80%, ${0.4 + Math.random() * 0.4})`,
+            background: `hsla(${300 + Math.random() * 60}, 60%, 75%, ${0.4 + Math.random() * 0.4})`,
             left: `${Math.random() * 100}%`,
             top: -10,
           }}
@@ -113,11 +133,59 @@ function TypewriterText({ text, delay = 0 }: { text: string; delay?: number }) {
         transition={{ duration: 0.5, repeat: Infinity }}
         className="inline-block w-0.5 h-6 ml-1 align-middle"
         style={{
-          background: 'hsl(220 50% 70%)',
+          background: 'hsl(320 50% 75%)',
           display: displayed.length >= text.length ? 'none' : 'inline-block',
         }}
       />
     </span>
+  )
+}
+
+// ─── Preloaded Image Component ────────────────────────────────────────────────
+
+function PreloadedImage({ 
+  src, 
+  alt, 
+  fallbackIdx,
+  className,
+  style,
+}: { 
+  src: string
+  alt: string
+  fallbackIdx: number
+  className?: string
+  style?: React.CSSProperties
+}) {
+  const [imageSrc, setImageSrc] = useState(src)
+  const [loaded, setLoaded] = useState(false)
+
+  return (
+    <div className={className} style={{ ...style, position: 'relative' }}>
+      {!loaded && (
+        <div 
+          className="absolute inset-0 animate-pulse"
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(80,50,100,0.4) 0%, rgba(50,30,80,0.4) 100%)',
+            borderRadius: 'inherit',
+          }} 
+        />
+      )}
+      <img
+        src={imageSrc}
+        alt={alt}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          opacity: loaded ? 1 : 0,
+          transition: 'opacity 0.3s ease',
+        }}
+        onLoad={() => setLoaded(true)}
+        onError={() => {
+          setImageSrc(getFallbackImage(fallbackIdx))
+        }}
+      />
+    </div>
   )
 }
 
@@ -126,14 +194,14 @@ function TypewriterText({ text, delay = 0 }: { text: string; delay?: number }) {
 export default function Showroom({ onBack }: { onBack: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const rafRef = useRef<number>(0)
-  const frameRef = useRef(0)
 
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 })
   const [stars, setStars] = useState<Star[]>([])
+  const [decorativeStars, setDecorativeStars] = useState<DecorativeStar[]>([])
   const [hoveredStar, setHoveredStar] = useState<number | null>(null)
   const [selectedStar, setSelectedStar] = useState<number | null>(null)
   const [isMobile, setIsMobile] = useState(false)
+  const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set())
 
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
@@ -143,6 +211,33 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
   const TOTAL = MEMORIES.length
   const MAGNETIC_RADIUS = 60
 
+  // Preload images in batches for better performance
+  useEffect(() => {
+    const preloadBatch = (startIdx: number, batchSize: number) => {
+      const endIdx = Math.min(startIdx + batchSize, MEMORIES.length)
+      for (let i = startIdx; i < endIdx; i++) {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => {
+          setPreloadedImages(prev => new Set(prev).add(i))
+        }
+        img.src = MEMORIES[i].image
+      }
+    }
+
+    // Preload first batch immediately
+    preloadBatch(0, 5)
+
+    // Preload remaining in batches with delays
+    const timers: NodeJS.Timeout[] = []
+    for (let i = 5; i < MEMORIES.length; i += 5) {
+      const timer = setTimeout(() => preloadBatch(i, 5), (i / 5) * 500)
+      timers.push(timer)
+    }
+
+    return () => timers.forEach(clearTimeout)
+  }, [])
+
   // Resize handler
   useEffect(() => {
     const handleResize = () => {
@@ -150,6 +245,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
       const h = window.innerHeight
       setDimensions({ width: w, height: h })
       setStars(generateStars(TOTAL, w, h))
+      setDecorativeStars(generateDecorativeStars(200, w, h))
       setIsMobile(w < 768)
     }
 
@@ -178,7 +274,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
     return cache
   }, [stars])
 
-  // Canvas animation for background stars and constellation lines
+  // Canvas - only draw background and decorative stars (no animation)
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -189,84 +285,135 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
     canvas.width = dimensions.width
     canvas.height = dimensions.height
 
-    // Background twinkling stars
-    const bgStars = Array.from({ length: 150 }, () => ({
-      x: Math.random() * dimensions.width,
-      y: Math.random() * dimensions.height,
-      r: Math.random() * 1.5 + 0.3,
-      phase: Math.random() * Math.PI * 2,
-    }))
+    // Deep purple/pink night sky gradient
+    const bg = ctx.createLinearGradient(0, 0, 0, dimensions.height)
+    bg.addColorStop(0, '#1a0a1f')      // Deep purple-black
+    bg.addColorStop(0.3, '#2a1535')    // Dark purple
+    bg.addColorStop(0.6, '#351a40')    // Purple-magenta
+    bg.addColorStop(1, '#3d1f48')      // Deep magenta-purple
+    ctx.fillStyle = bg
+    ctx.fillRect(0, 0, dimensions.width, dimensions.height)
 
-    const draw = () => {
-      frameRef.current++
-      const t = frameRef.current * 0.015
+    // Subtle pink nebula effect
+    const nebulaGrad1 = ctx.createRadialGradient(
+      dimensions.width * 0.2,
+      dimensions.height * 0.3,
+      0,
+      dimensions.width * 0.2,
+      dimensions.height * 0.3,
+      dimensions.width * 0.4
+    )
+    nebulaGrad1.addColorStop(0, 'rgba(120, 50, 100, 0.12)')
+    nebulaGrad1.addColorStop(0.5, 'rgba(80, 30, 80, 0.06)')
+    nebulaGrad1.addColorStop(1, 'transparent')
+    ctx.fillStyle = nebulaGrad1
+    ctx.fillRect(0, 0, dimensions.width, dimensions.height)
 
-      ctx.clearRect(0, 0, dimensions.width, dimensions.height)
+    const nebulaGrad2 = ctx.createRadialGradient(
+      dimensions.width * 0.8,
+      dimensions.height * 0.7,
+      0,
+      dimensions.width * 0.8,
+      dimensions.height * 0.7,
+      dimensions.width * 0.35
+    )
+    nebulaGrad2.addColorStop(0, 'rgba(150, 60, 120, 0.1)')
+    nebulaGrad2.addColorStop(0.5, 'rgba(100, 40, 100, 0.05)')
+    nebulaGrad2.addColorStop(1, 'transparent')
+    ctx.fillStyle = nebulaGrad2
+    ctx.fillRect(0, 0, dimensions.width, dimensions.height)
 
-      // Night sky gradient
-      const bg = ctx.createLinearGradient(0, 0, 0, dimensions.height)
-      bg.addColorStop(0, '#0a0a1a')
-      bg.addColorStop(0.3, '#0d1025')
-      bg.addColorStop(0.6, '#121530')
-      bg.addColorStop(1, '#1a1a35')
-      ctx.fillStyle = bg
-      ctx.fillRect(0, 0, dimensions.width, dimensions.height)
+    // Draw 200 static decorative stars (no twinkling)
+    decorativeStars.forEach((s) => {
+      ctx.beginPath()
+      ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(255, 240, 250, ${s.opacity})`
+      ctx.fill()
+    })
+  }, [dimensions, decorativeStars])
 
-      // Subtle nebula effect
-      const nebulaGrad = ctx.createRadialGradient(
-        dimensions.width * 0.7,
-        dimensions.height * 0.3,
-        0,
-        dimensions.width * 0.7,
-        dimensions.height * 0.3,
-        dimensions.width * 0.5
-      )
-      nebulaGrad.addColorStop(0, 'rgba(60, 40, 100, 0.15)')
-      nebulaGrad.addColorStop(0.5, 'rgba(40, 30, 80, 0.08)')
-      nebulaGrad.addColorStop(1, 'transparent')
-      ctx.fillStyle = nebulaGrad
-      ctx.fillRect(0, 0, dimensions.width, dimensions.height)
+  // Draw constellation lines on separate canvas layer or just update
+  useEffect(() => {
+    if (hoveredStar === null) return
 
-      // Twinkling background stars
-      bgStars.forEach((s) => {
-        const alpha = 0.3 + 0.5 * Math.sin(t + s.phase)
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    // Redraw everything including lines
+    // Deep purple/pink night sky gradient
+    const bg = ctx.createLinearGradient(0, 0, 0, dimensions.height)
+    bg.addColorStop(0, '#1a0a1f')
+    bg.addColorStop(0.3, '#2a1535')
+    bg.addColorStop(0.6, '#351a40')
+    bg.addColorStop(1, '#3d1f48')
+    ctx.fillStyle = bg
+    ctx.fillRect(0, 0, dimensions.width, dimensions.height)
+
+    // Nebula effects
+    const nebulaGrad1 = ctx.createRadialGradient(
+      dimensions.width * 0.2,
+      dimensions.height * 0.3,
+      0,
+      dimensions.width * 0.2,
+      dimensions.height * 0.3,
+      dimensions.width * 0.4
+    )
+    nebulaGrad1.addColorStop(0, 'rgba(120, 50, 100, 0.12)')
+    nebulaGrad1.addColorStop(0.5, 'rgba(80, 30, 80, 0.06)')
+    nebulaGrad1.addColorStop(1, 'transparent')
+    ctx.fillStyle = nebulaGrad1
+    ctx.fillRect(0, 0, dimensions.width, dimensions.height)
+
+    const nebulaGrad2 = ctx.createRadialGradient(
+      dimensions.width * 0.8,
+      dimensions.height * 0.7,
+      0,
+      dimensions.width * 0.8,
+      dimensions.height * 0.7,
+      dimensions.width * 0.35
+    )
+    nebulaGrad2.addColorStop(0, 'rgba(150, 60, 120, 0.1)')
+    nebulaGrad2.addColorStop(0.5, 'rgba(100, 40, 100, 0.05)')
+    nebulaGrad2.addColorStop(1, 'transparent')
+    ctx.fillStyle = nebulaGrad2
+    ctx.fillRect(0, 0, dimensions.width, dimensions.height)
+
+    // Draw decorative stars
+    decorativeStars.forEach((s) => {
+      ctx.beginPath()
+      ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(255, 240, 250, ${s.opacity})`
+      ctx.fill()
+    })
+
+    // Draw constellation lines on hover
+    if (hoveredStar !== null && stars[hoveredStar]) {
+      const fromStar = stars[hoveredStar]
+      const nearest = nearestCache[hoveredStar] || []
+
+      nearest.forEach((ni) => {
+        const toStar = stars[ni]
+        if (!toStar) return
+
+        const grad = ctx.createLinearGradient(fromStar.x, fromStar.y, toStar.x, toStar.y)
+        grad.addColorStop(0, 'rgba(255, 180, 220, 0.6)')
+        grad.addColorStop(1, 'rgba(200, 150, 255, 0.2)')
+
         ctx.beginPath()
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(200,210,255,${alpha})`
-        ctx.fill()
+        ctx.moveTo(fromStar.x, fromStar.y)
+        ctx.lineTo(toStar.x, toStar.y)
+        ctx.strokeStyle = grad
+        ctx.lineWidth = 1
+        ctx.shadowColor = 'rgba(255, 180, 220, 0.5)'
+        ctx.shadowBlur = 6
+        ctx.stroke()
+        ctx.shadowBlur = 0
       })
-
-      // Constellation lines on hover
-      if (hoveredStar !== null && stars[hoveredStar]) {
-        const fromStar = stars[hoveredStar]
-        const nearest = nearestCache[hoveredStar] || []
-
-        nearest.forEach((ni) => {
-          const toStar = stars[ni]
-          if (!toStar) return
-
-          const grad = ctx.createLinearGradient(fromStar.x, fromStar.y, toStar.x, toStar.y)
-          grad.addColorStop(0, 'rgba(150,180,255,0.6)')
-          grad.addColorStop(1, 'rgba(180,200,255,0.2)')
-
-          ctx.beginPath()
-          ctx.moveTo(fromStar.x, fromStar.y)
-          ctx.lineTo(toStar.x, toStar.y)
-          ctx.strokeStyle = grad
-          ctx.lineWidth = 1
-          ctx.shadowColor = 'rgba(150,180,255,0.5)'
-          ctx.shadowBlur = 6
-          ctx.stroke()
-          ctx.shadowBlur = 0
-        })
-      }
-
-      rafRef.current = requestAnimationFrame(draw)
     }
-
-    draw()
-    return () => cancelAnimationFrame(rafRef.current)
-  }, [dimensions, hoveredStar, nearestCache, stars])
+  }, [hoveredStar, stars, nearestCache, dimensions, decorativeStars])
 
   // Update star positions with floating + magnetic effect
   useEffect(() => {
@@ -377,8 +524,8 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
                 animate={{
                   scale: isHovered ? 1.6 : 1,
                   boxShadow: isHovered
-                    ? '0 0 20px 8px rgba(200,220,255,0.9), 0 0 40px 16px rgba(150,180,255,0.5)'
-                    : '0 0 12px 4px rgba(200,220,255,0.6)',
+                    ? '0 0 20px 8px rgba(255,200,230,0.9), 0 0 40px 16px rgba(255,150,200,0.5)'
+                    : '0 0 12px 4px rgba(255,220,240,0.6)',
                 }}
                 transition={{ duration: 0.3 }}
                 style={{
@@ -409,23 +556,19 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
                         width: 128,
                         height: 160,
                         borderRadius: 12,
-                        background: 'rgba(30,40,80,0.6)',
+                        background: 'rgba(60,30,60,0.6)',
                         backdropFilter: 'blur(12px)',
-                        border: '1px solid rgba(150,180,255,0.3)',
+                        border: '1px solid rgba(255,180,220,0.3)',
                         boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                       }}
                     >
-                      <img
+                      <PreloadedImage
                         src={memory.image}
                         alt={memory.caption}
+                        fallbackIdx={idx}
                         style={{
                           width: '100%',
                           height: '100%',
-                          objectFit: 'cover',
-                        }}
-                        onError={(e) => {
-                          const t = e.target as HTMLImageElement
-                          t.src = getFallbackImage(idx)
                         }}
                       />
                     </div>
@@ -446,21 +589,21 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
         transition={{ delay: 0.5 }}
         className="absolute top-6 left-6 flex items-center gap-2"
         style={{
-          background: 'rgba(30,40,80,0.6)',
+          background: 'rgba(60,30,60,0.6)',
           backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(150,180,255,0.2)',
+          border: '1px solid rgba(255,180,220,0.2)',
           borderRadius: 40,
           padding: '8px 18px',
           fontFamily: 'var(--font-body)',
           fontSize: '0.82rem',
-          color: 'hsl(220 70% 85%)',
+          color: 'hsl(320 60% 85%)',
           cursor: 'pointer',
           boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
           zIndex: 50,
         }}
       >
         <ArrowLeft size={14} />
-        <span>Trở về trạm tiếp sức</span>
+        <span>Tro ve tram tiep suc</span>
       </motion.button>
 
       {/* Cinematic Postcard Modal */}
@@ -474,7 +617,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
             className="fixed inset-0 flex items-center justify-center"
             style={{
               zIndex: 100,
-              background: 'rgba(5,10,25,0.9)',
+              background: 'rgba(20,10,25,0.92)',
               backdropFilter: 'blur(20px)',
             }}
             onClick={closeModal}
@@ -494,7 +637,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
               style={{
                 width: 100,
                 height: 100,
-                background: 'radial-gradient(circle, rgba(150,180,255,0.4) 0%, transparent 70%)',
+                background: 'radial-gradient(circle, rgba(255,180,220,0.4) 0%, transparent 70%)',
                 left: stars[selectedStar]?.x || '50%',
                 top: stars[selectedStar]?.y || '50%',
                 transform: 'translate(-50%, -50%)',
@@ -516,9 +659,9 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
               }}
               className="relative max-w-2xl w-full mx-4 p-6 text-center"
               style={{
-                background: 'rgba(20,30,60,0.7)',
+                background: 'rgba(50,25,50,0.7)',
                 backdropFilter: 'blur(24px)',
-                border: '1px solid rgba(150,180,255,0.2)',
+                border: '1px solid rgba(255,180,220,0.2)',
                 borderRadius: 24,
                 boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
               }}
@@ -534,10 +677,10 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
                   width: 36,
                   height: 36,
                   borderRadius: '50%',
-                  background: 'rgba(50,60,100,0.6)',
+                  background: 'rgba(80,40,80,0.6)',
                   backdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(150,180,255,0.2)',
-                  color: 'hsl(220 60% 80%)',
+                  border: '1px solid rgba(255,180,220,0.2)',
+                  color: 'hsl(320 60% 85%)',
                   cursor: 'pointer',
                 }}
               >
@@ -545,7 +688,10 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
               </motion.button>
 
               {/* Image */}
-              <div
+              <PreloadedImage
+                src={getMemory(selectedStar).image}
+                alt={getMemory(selectedStar).caption}
+                fallbackIdx={selectedStar}
                 className="mx-auto overflow-hidden"
                 style={{
                   width: '100%',
@@ -554,21 +700,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
                   borderRadius: 16,
                   boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                 }}
-              >
-                <img
-                  src={getMemory(selectedStar).image}
-                  alt={getMemory(selectedStar).caption}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                  onError={(e) => {
-                    const t = e.target as HTMLImageElement
-                    t.src = getFallbackImage(selectedStar)
-                  }}
-                />
-              </div>
+              />
 
               {/* Caption with typewriter */}
               <motion.p
@@ -579,7 +711,7 @@ export default function Showroom({ onBack }: { onBack: () => void }) {
                 style={{
                   fontFamily: 'var(--font-display)',
                   fontSize: 'clamp(1.6rem, 4.5vw, 2.2rem)',
-                  color: 'hsl(220 50% 90%)',
+                  color: 'hsl(320 40% 90%)',
                   lineHeight: 1.4,
                 }}
               >
