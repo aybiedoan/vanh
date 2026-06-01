@@ -168,20 +168,18 @@ export default function PlaylistWidget() {
         height: '1',
         videoId: '',
         playerVars: {
-          autoplay: 0,
+          autoplay: 1,
           controls: 0,
           rel: 0,
           showinfo: 0,
           modestbranding: 1,
           fs: 0,
           playsinline: 1,
+          enablejsapi: 1,
         },
         events: {
           onReady: () => {
-            if (tracks.length > 0) {
-              playerRef.current?.loadVideoById(tracks[0].id)
-              playerRef.current?.playVideo()
-            }
+            // Player ready
           },
           onStateChange: (e) => {
             if (e.data === window.YT.PlayerState.PLAYING) {
@@ -199,7 +197,6 @@ export default function PlaylistWidget() {
         },
       })
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Load & play track when idx changes
@@ -208,11 +205,15 @@ export default function PlaylistWidget() {
     const trackId = tracks[currentIdx % tracks.length].id
     try {
       playerRef.current.loadVideoById(trackId)
-      playerRef.current.playVideo()
+      setTimeout(() => {
+        try {
+          playerRef.current?.playVideo()
+        } catch {}
+      }, 100)
       setCurrentTime(0)
       setDuration(0)
     } catch {}
-  }, [currentIdx, tracks])
+  }, [currentIdx])
 
   const togglePlay = () => {
     if (!playerRef.current || tracks.length === 0) return
