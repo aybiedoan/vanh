@@ -32,23 +32,183 @@ type Particle = {
 
 const EMOJIS = ['❤️', '✨', '🍬', '🔋', '🌸', '💫', '🎀']
 
+// ─── Envelope SVG Component ───────────────────────────────────────────────────
+
+function EnvelopeSVG({
+  flapOpen,
+  paperY,
+  showSeal,
+}: {
+  flapOpen: boolean
+  paperY: number
+  showSeal: boolean
+}) {
+  const W = 320
+  const H = 220
+  const R = 12 // corner radius
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      width={W}
+      height={H}
+      style={{ display: 'block', filter: 'drop-shadow(0 20px 48px rgba(0,0,0,0.45))' }}
+      overflow="visible"
+    >
+      <defs>
+        {/* Body gradient */}
+        <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="hsl(340 55% 74%)" />
+          <stop offset="100%" stopColor="hsl(345 52% 67%)" />
+        </linearGradient>
+        {/* Bottom flap gradient (slightly darker) */}
+        <linearGradient id="bottomGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="hsl(338 50% 68%)" />
+          <stop offset="100%" stopColor="hsl(342 52% 62%)" />
+        </linearGradient>
+        {/* Paper gradient */}
+        <linearGradient id="paperGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="hsl(46 55% 97%)" />
+          <stop offset="100%" stopColor="hsl(40 48% 92%)" />
+        </linearGradient>
+        {/* Flap back gradient (cream) */}
+        <linearGradient id="flapBackGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="hsl(42 48% 94%)" />
+          <stop offset="100%" stopColor="hsl(38 44% 89%)" />
+        </linearGradient>
+        {/* Clip for envelope body */}
+        <clipPath id="envelopeClip">
+          <rect x="0" y="0" width={W} height={H} rx={R} />
+        </clipPath>
+        {/* Clip for paper */}
+        <clipPath id="paperClip">
+          <rect x="20" y={paperY} width={W - 40} height={H - 10} rx="6" />
+        </clipPath>
+      </defs>
+
+      {/* ── Envelope body ── */}
+      <rect x="0" y="0" width={W} height={H} rx={R} fill="url(#bodyGrad)" />
+
+      {/* ── Left inner side triangle (cream) ── */}
+      <polygon
+        points={`0,${H * 0.25} ${W / 2},${H * 0.65} 0,${H}`}
+        fill="hsl(44 50% 93%)"
+        opacity="0.85"
+      />
+      {/* ── Right inner side triangle (cream) ── */}
+      <polygon
+        points={`${W},${H * 0.25} ${W / 2},${H * 0.65} ${W},${H}`}
+        fill="hsl(44 50% 93%)"
+        opacity="0.85"
+      />
+
+      {/* ── Paper inside envelope ── */}
+      <g clipPath="url(#envelopeClip)">
+        <rect
+          x="22"
+          y={paperY}
+          width={W - 44}
+          height={H - 8}
+          rx="6"
+          fill="url(#paperGrad)"
+        />
+        {/* Ruled lines on paper */}
+        {Array.from({ length: 10 }).map((_, i) => (
+          <line
+            key={i}
+            x1="36"
+            y1={paperY + 22 + i * 17}
+            x2={W - 36}
+            y2={paperY + 22 + i * 17}
+            stroke="hsl(220 30% 82%)"
+            strokeWidth="0.8"
+            opacity="0.6"
+          />
+        ))}
+      </g>
+
+      {/* ── Bottom front flap (V shape) ── */}
+      <polygon
+        points={`0,${H * 0.35} ${W / 2},${H * 0.68} ${W},${H * 0.35} ${W},${H} 0,${H}`}
+        fill="url(#bottomGrad)"
+        clipPath="url(#envelopeClip)"
+      />
+      {/* Subtle highlight on bottom flap edge */}
+      <line
+        x1="0" y1={H * 0.35}
+        x2={W / 2} y2={H * 0.68}
+        stroke="rgba(255,255,255,0.18)"
+        strokeWidth="1.5"
+      />
+      <line
+        x1={W / 2} y1={H * 0.68}
+        x2={W} y2={H * 0.35}
+        stroke="rgba(255,255,255,0.18)"
+        strokeWidth="1.5"
+      />
+
+      {/* ── Wax seal ── */}
+      {showSeal && (
+        <g>
+          <circle
+            cx={W / 2}
+            cy={H * 0.595}
+            r="20"
+            fill="hsl(0 68% 48%)"
+          />
+          <circle
+            cx={W / 2}
+            cy={H * 0.595}
+            r="20"
+            fill="url(#sealHighlight)"
+          />
+          <defs>
+            <radialGradient id="sealHighlight" cx="35%" cy="30%">
+              <stop offset="0%" stopColor="rgba(255,255,255,0.28)" />
+              <stop offset="100%" stopColor="transparent" />
+            </radialGradient>
+          </defs>
+          {/* Heart path */}
+          <text
+            x={W / 2}
+            y={H * 0.595 + 8}
+            textAnchor="middle"
+            fontSize="18"
+            style={{ userSelect: 'none' }}
+          >
+            ❤️
+          </text>
+        </g>
+      )}
+
+      {/* ── Top flap (rendered last so it overlaps paper when closed) ── */}
+      {/* This element is handled by the animated div below */}
+    </svg>
+  )
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function EnergyBubble() {
   const [particles, setParticles] = useState<Particle[]>([])
   const [showEnvelope, setShowEnvelope] = useState(false)
-  const [letterRevealed, setLetterRevealed] = useState(false)
+  const [stage, setStage] = useState<'closed' | 'opening' | 'open' | 'reading'>('closed')
   const [currentLetter, setCurrentLetter] = useState(LETTERS[0])
   const [hovered, setHovered] = useState(false)
   const [typedText, setTypedText] = useState('')
-  const [flapOpen, setFlapOpen] = useState(false)
   const counterRef = useRef(0)
 
-  // Typing effect for letter
+  const flapOpen = stage === 'open' || stage === 'reading'
+  const paperY = stage === 'open' || stage === 'reading' ? -80 : 28
+  const showSeal = stage === 'closed' || stage === 'opening'
+  const letterRevealed = stage === 'reading'
+
+  // Typing effect
   useEffect(() => {
     if (!letterRevealed) {
       setTypedText('')
       return
     }
-
     let idx = 0
     setTypedText('')
     const interval = setInterval(() => {
@@ -58,8 +218,7 @@ export default function EnergyBubble() {
       } else {
         clearInterval(interval)
       }
-    }, 35)
-
+    }, 38)
     return () => clearInterval(interval)
   }, [letterRevealed, currentLetter])
 
@@ -83,25 +242,23 @@ export default function EnergyBubble() {
     triggerParticles(e.clientX, e.clientY)
     const idx = Math.floor(Math.random() * LETTERS.length)
     setCurrentLetter(LETTERS[idx])
-    setLetterRevealed(false)
-    setFlapOpen(false)
+    setStage('closed')
+    setTypedText('')
     setTimeout(() => setShowEnvelope(true), 200)
   }
 
   const handleEnvelopeClick = () => {
-    if (!flapOpen) {
-      // First click: open flap
-      setFlapOpen(true)
-    } else if (!letterRevealed) {
-      // Second click: reveal letter
-      setLetterRevealed(true)
+    if (stage === 'closed') {
+      setStage('opening')
+      setTimeout(() => setStage('open'), 300)
+    } else if (stage === 'open') {
+      setStage('reading')
     }
   }
 
   const closeModal = () => {
     setShowEnvelope(false)
-    setLetterRevealed(false)
-    setFlapOpen(false)
+    setStage('closed')
   }
 
   return (
@@ -113,12 +270,7 @@ export default function EnergyBubble() {
             <motion.span
               key={p.id}
               initial={{ x: p.x, y: p.y, opacity: 1, scale: 1 }}
-              animate={{
-                x: p.x + p.vx,
-                y: p.y + p.vy,
-                opacity: 0,
-                scale: 0.3,
-              }}
+              animate={{ x: p.x + p.vx, y: p.y + p.vy, opacity: 0, scale: 0.3 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1.1, ease: 'easeOut' }}
               className="fixed text-xl select-none"
@@ -153,10 +305,7 @@ export default function EnergyBubble() {
           whileHover={{ scale: 1.12 }}
           whileTap={{ scale: 0.94 }}
           className="w-10 h-10 flex items-center justify-center rounded-full text-lg cursor-pointer select-none"
-          style={{
-            background: 'rgba(255,255,255,0.08)',
-            backdropFilter: 'blur(12px)',
-          }}
+          style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)' }}
           animate={{
             boxShadow: [
               '0 0 16px hsl(332 80% 55% / 0.15)',
@@ -170,405 +319,261 @@ export default function EnergyBubble() {
         </motion.button>
       </div>
 
-      {/* Modal */}
+      {/* Modal overlay */}
       <AnimatePresence>
         {showEnvelope && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className="fixed inset-0 flex items-center justify-center cursor-pointer"
+            transition={{ duration: 0.4 }}
+            className="fixed inset-0 flex items-center justify-center"
             style={{
               zIndex: 10000,
-              background: 'radial-gradient(ellipse at center, rgba(60,30,50,0.85) 0%, rgba(25,15,30,0.95) 100%)',
-              backdropFilter: 'blur(24px)',
+              background: 'radial-gradient(ellipse at 50% 40%, rgba(70,30,55,0.88) 0%, rgba(20,10,28,0.96) 100%)',
+              backdropFilter: 'blur(20px)',
             }}
             onClick={closeModal}
           >
-            {/* Ambient floating particles */}
+            {/* Ambient floating dust */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {Array.from({ length: 20 }).map((_, i) => (
+              {Array.from({ length: 18 }).map((_, i) => (
                 <motion.div
                   key={i}
                   className="absolute rounded-full"
                   style={{
-                    width: Math.random() * 3 + 1,
-                    height: Math.random() * 3 + 1,
-                    background: `hsla(${330 + Math.random() * 30}, 70%, 80%, ${0.3 + Math.random() * 0.3})`,
+                    width: 1 + Math.random() * 2.5,
+                    height: 1 + Math.random() * 2.5,
+                    background: `hsla(${330 + Math.random() * 30}, 70%, 82%, ${0.25 + Math.random() * 0.3})`,
                     left: `${Math.random() * 100}%`,
                     top: `${Math.random() * 100}%`,
                   }}
-                  animate={{
-                    y: [0, -30, 0],
-                    opacity: [0.3, 0.7, 0.3],
-                  }}
+                  animate={{ y: [0, -24, 0], opacity: [0.25, 0.55, 0.25] }}
                   transition={{
-                    duration: 3 + Math.random() * 2,
+                    duration: 4 + Math.random() * 3,
                     repeat: Infinity,
-                    delay: Math.random() * 2,
+                    delay: Math.random() * 3,
                     ease: 'easeInOut',
                   }}
                 />
               ))}
             </div>
 
-            {/* 3D Perspective Container */}
-            <div
-              className="relative"
-              style={{
-                perspective: '1200px',
-                perspectiveOrigin: '50% 50%',
-              }}
-            >
-              {/* Envelope Container */}
-              <motion.div
-                initial={{ scale: 0.7, opacity: 0, rotateX: -10 }}
-                animate={{
-                  scale: letterRevealed ? 0.8 : 1,
-                  opacity: letterRevealed ? 0 : 1,
-                  rotateX: letterRevealed ? 15 : 0,
-                  y: letterRevealed ? 60 : 0,
-                }}
-                exit={{ scale: 0.8, opacity: 0, y: 30 }}
-                transition={{
-                  type: 'spring',
-                  stiffness: 120,
-                  damping: 20,
-                  mass: 1,
-                }}
-                className="relative cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleEnvelopeClick()
-                }}
-                style={{
-                  width: 320,
-                  height: 220,
-                  transformStyle: 'preserve-3d',
-                  pointerEvents: letterRevealed ? 'none' : 'auto',
-                }}
-              >
-                {/* === ENVELOPE BODY (back layer) === */}
-                <div
-                  className="absolute rounded-lg"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    background: 'linear-gradient(180deg, hsl(340 45% 72%) 0%, hsl(345 50% 65%) 100%)',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)',
-                    transform: 'translateZ(0px)',
-                  }}
-                />
-
-                {/* === LETTER PAPER (inside envelope) === */}
+            {/* ── ENVELOPE STAGE ── */}
+            <AnimatePresence mode="wait">
+              {!letterRevealed ? (
                 <motion.div
-                  className="absolute rounded-sm overflow-hidden"
-                  style={{
-                    width: 280,
-                    height: 180,
-                    left: 20,
-                    top: 20,
-                    background: 'linear-gradient(180deg, hsl(48 60% 96%) 0%, hsl(42 50% 92%) 100%)',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    transform: 'translateZ(2px)',
-                  }}
-                  animate={{
-                    y: flapOpen ? -120 : 0,
-                    opacity: letterRevealed ? 0 : 1,
-                  }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 80,
-                    damping: 18,
-                    mass: 0.8,
+                  key="envelope-stage"
+                  initial={{ scale: 0.72, opacity: 0, y: 24 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.88, opacity: 0, y: -30, transition: { duration: 0.35, ease: 'easeIn' } }}
+                  transition={{ type: 'spring', stiffness: 140, damping: 20, mass: 0.9 }}
+                  className="relative flex flex-col items-center"
+                  style={{ perspective: 1000 }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleEnvelopeClick()
                   }}
                 >
-                  {/* Ruled lines on paper */}
-                  <div className="absolute inset-0">
-                    {Array.from({ length: 9 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="absolute w-full"
-                        style={{
-                          height: 1,
-                          background: 'hsla(220, 30%, 80%, 0.5)',
-                          top: 20 + i * 18,
-                        }}
-                      />
-                    ))}
-                  </div>
-                </motion.div>
+                  {/* Flap — rendered as an absolutely-positioned overlay on top of the SVG */}
+                  <div className="relative cursor-pointer select-none" style={{ width: 320, height: 220 }}>
+                    {/* Base envelope + paper + bottom flap */}
+                    <EnvelopeSVG
+                      flapOpen={flapOpen}
+                      paperY={paperY}
+                      showSeal={showSeal}
+                    />
 
-                {/* === ENVELOPE FLAP (triangular, top) === */}
-                <motion.div
-                  className="absolute left-0 right-0"
-                  style={{
-                    top: 0,
-                    height: '55%',
-                    transformOrigin: 'top center',
-                    transformStyle: 'preserve-3d',
-                    zIndex: 10,
-                  }}
-                  animate={{
-                    rotateX: flapOpen ? 180 : 0,
-                  }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 50,
-                    damping: 15,
-                    mass: 1.2,
-                  }}
-                >
-                  {/* Flap front face (pink, visible when closed) */}
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
-                      background: 'linear-gradient(180deg, hsl(342 48% 70%) 0%, hsl(345 50% 65%) 100%)',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)',
-                      backfaceVisibility: 'hidden',
-                    }}
-                  />
-                  {/* Flap back face (cream, visible when open) */}
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
-                      background: 'linear-gradient(180deg, hsl(42 45% 92%) 0%, hsl(38 40% 88%) 100%)',
-                      transform: 'rotateX(180deg)',
-                      backfaceVisibility: 'hidden',
-                    }}
-                  />
-                </motion.div>
-
-                {/* === WAX SEAL (heart) === */}
-                <motion.div
-                  className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center"
-                  style={{
-                    top: 85,
-                    width: 48,
-                    height: 48,
-                    borderRadius: '50%',
-                    background: 'radial-gradient(circle at 35% 35%, hsl(0 70% 55%) 0%, hsl(355 75% 42%) 100%)',
-                    boxShadow: '0 4px 12px rgba(180,50,70,0.5), inset 0 2px 0 rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.15)',
-                    zIndex: 15,
-                    transform: 'translateZ(5px)',
-                  }}
-                  animate={{
-                    scale: flapOpen ? 0 : 1,
-                    opacity: flapOpen ? 0 : 1,
-                    rotateZ: flapOpen ? 90 : 0,
-                  }}
-                  transition={{
-                    duration: 0.3,
-                    ease: [0.4, 0, 0.2, 1],
-                  }}
-                >
-                  <span style={{ fontSize: 22, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>❤️</span>
-                </motion.div>
-
-                {/* === ENVELOPE FRONT POCKET (bottom V-shape) === */}
-                <div
-                  className="absolute left-0 right-0 bottom-0 rounded-b-lg"
-                  style={{
-                    height: '60%',
-                    background: 'linear-gradient(180deg, hsl(340 48% 70%) 0%, hsl(345 50% 65%) 100%)',
-                    clipPath: 'polygon(0 40%, 50% 0, 100% 40%, 100% 100%, 0 100%)',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
-                    zIndex: 20,
-                    transform: 'translateZ(8px)',
-                  }}
-                />
-
-                {/* Left inner triangle (cream) */}
-                <div
-                  className="absolute"
-                  style={{
-                    left: 0,
-                    bottom: 0,
-                    width: '50%',
-                    height: '60%',
-                    clipPath: 'polygon(0 30%, 100% 0, 0 100%)',
-                    background: 'linear-gradient(135deg, hsl(45 50% 94%) 0%, hsl(40 45% 90%) 100%)',
-                    zIndex: 5,
-                    transform: 'translateZ(3px)',
-                  }}
-                />
-
-                {/* Right inner triangle (cream) */}
-                <div
-                  className="absolute"
-                  style={{
-                    right: 0,
-                    bottom: 0,
-                    width: '50%',
-                    height: '60%',
-                    clipPath: 'polygon(100% 30%, 0 0, 100% 100%)',
-                    background: 'linear-gradient(225deg, hsl(45 50% 94%) 0%, hsl(40 45% 90%) 100%)',
-                    zIndex: 5,
-                    transform: 'translateZ(3px)',
-                  }}
-                />
-              </motion.div>
-
-              {/* === LETTER CARD (zooms to center when revealed) === */}
-              <AnimatePresence>
-                {letterRevealed && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.3, y: 80, rotateX: 15 }}
-                    animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
-                    exit={{ opacity: 0, scale: 0.8, y: 40 }}
-                    transition={{
-                      type: 'spring',
-                      stiffness: 90,
-                      damping: 16,
-                      mass: 1,
-                      delay: 0.1,
-                    }}
-                    className="absolute inset-0 flex flex-col items-center justify-center"
-                    style={{
-                      transform: 'translateZ(50px)',
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      closeModal()
-                    }}
-                  >
-                    {/* Letter Card */}
+                    {/* Top flap — 3D flip via CSS transform */}
                     <motion.div
-                      className="relative flex flex-col items-center justify-center px-10 py-12 rounded-2xl overflow-hidden"
+                      className="absolute left-0 top-0 overflow-hidden pointer-events-none"
                       style={{
-                        width: 'clamp(300px, 85vw, 480px)',
-                        background: 'linear-gradient(175deg, hsl(45 55% 97%) 0%, hsl(40 50% 94%) 50%, hsl(38 45% 91%) 100%)',
-                        boxShadow: `
-                          0 0 0 1px rgba(255,220,200,0.3),
-                          0 30px 80px rgba(0,0,0,0.35),
-                          0 10px 40px rgba(180,100,120,0.2)
-                        `,
+                        width: 320,
+                        height: 220 * 0.52,
+                        transformOrigin: 'top center',
+                        transformStyle: 'preserve-3d',
+                        zIndex: 10,
                       }}
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ duration: 0.3 }}
+                      animate={{ rotateX: flapOpen ? -175 : 0 }}
+                      transition={{
+                        type: 'spring',
+                        stiffness: 45,
+                        damping: 14,
+                        mass: 1.1,
+                      }}
                     >
-                      {/* Paper texture */}
-                      <div
-                        className="absolute inset-0 pointer-events-none"
-                        style={{
-                          background: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
-                          opacity: 0.04,
-                        }}
-                      />
-
-                      {/* Decorative corner flourishes */}
-                      <div
-                        className="absolute top-4 left-4 w-10 h-10 opacity-20"
-                        style={{
-                          borderTop: '2px solid hsl(340 50% 60%)',
-                          borderLeft: '2px solid hsl(340 50% 60%)',
-                          borderTopLeftRadius: 6,
-                        }}
-                      />
-                      <div
-                        className="absolute top-4 right-4 w-10 h-10 opacity-20"
-                        style={{
-                          borderTop: '2px solid hsl(340 50% 60%)',
-                          borderRight: '2px solid hsl(340 50% 60%)',
-                          borderTopRightRadius: 6,
-                        }}
-                      />
-                      <div
-                        className="absolute bottom-4 left-4 w-10 h-10 opacity-20"
-                        style={{
-                          borderBottom: '2px solid hsl(340 50% 60%)',
-                          borderLeft: '2px solid hsl(340 50% 60%)',
-                          borderBottomLeftRadius: 6,
-                        }}
-                      />
-                      <div
-                        className="absolute bottom-4 right-4 w-10 h-10 opacity-20"
-                        style={{
-                          borderBottom: '2px solid hsl(340 50% 60%)',
-                          borderRight: '2px solid hsl(340 50% 60%)',
-                          borderBottomRightRadius: 6,
-                        }}
-                      />
-
-                      {/* Heart icon */}
-                      <motion.span
-                        initial={{ scale: 0, rotate: -20 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{
-                          delay: 0.3,
-                          type: 'spring',
-                          stiffness: 300,
-                          damping: 15,
-                        }}
-                        className="mb-5 text-3xl"
-                        style={{ filter: 'drop-shadow(0 2px 4px rgba(200,100,120,0.3))' }}
+                      {/* Front face (pink) */}
+                      <svg
+                        viewBox="0 0 320 114"
+                        width={320}
+                        height={114}
+                        className="absolute top-0 left-0"
+                        style={{ backfaceVisibility: 'hidden' }}
                       >
-                        💌
-                      </motion.span>
+                        <defs>
+                          <linearGradient id="flapFront" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="hsl(336 54% 75%)" />
+                            <stop offset="100%" stopColor="hsl(342 52% 68%)" />
+                          </linearGradient>
+                          <clipPath id="flapClip">
+                            <rect x="0" y="0" width="320" height="114" rx="12" />
+                          </clipPath>
+                        </defs>
+                        <polygon
+                          points="0,0 320,0 160,114"
+                          fill="url(#flapFront)"
+                          clipPath="url(#flapClip)"
+                        />
+                        {/* Top corners rounded */}
+                        <rect x="0" y="0" width="12" height="12" rx="12" fill="url(#flapFront)" />
+                        <rect x="308" y="0" width="12" height="12" rx="12" fill="url(#flapFront)" />
+                        {/* Edge highlight */}
+                        <line x1="0" y1="1" x2="160" y2="114" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" />
+                        <line x1="320" y1="1" x2="160" y2="114" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" />
+                      </svg>
 
-                      {/* Letter text with typewriter effect */}
-                      <p
-                        className="text-center leading-relaxed relative"
+                      {/* Back face (cream, shown when flap is open) */}
+                      <svg
+                        viewBox="0 0 320 114"
+                        width={320}
+                        height={114}
+                        className="absolute top-0 left-0"
                         style={{
-                          fontFamily: 'var(--font-display)',
-                          fontSize: 'clamp(1.3rem, 4vw, 1.75rem)',
-                          color: 'hsl(325 45% 25%)',
-                          lineHeight: 1.6,
-                          minHeight: '3em',
+                          backfaceVisibility: 'hidden',
+                          transform: 'rotateX(180deg)',
                         }}
                       >
-                        {typedText}
-                        <motion.span
-                          animate={{ opacity: [1, 0] }}
-                          transition={{ duration: 0.5, repeat: Infinity }}
-                          className="inline-block w-0.5 h-5 ml-1 align-middle"
+                        <defs>
+                          <linearGradient id="flapBack" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="hsl(42 50% 94%)" />
+                            <stop offset="100%" stopColor="hsl(38 44% 89%)" />
+                          </linearGradient>
+                        </defs>
+                        <polygon points="0,0 320,0 160,114" fill="url(#flapBack)" />
+                      </svg>
+                    </motion.div>
+                  </div>
+
+                  {/* Instruction hint */}
+                  <motion.p
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 0.65, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="mt-8 text-xs tracking-widest uppercase text-center"
+                    style={{ fontFamily: 'var(--font-body)', color: 'hsl(330 60% 85%)' }}
+                  >
+                    {flapOpen ? 'chạm lần nữa để đọc thư' : 'chạm phong thư để mở'}
+                  </motion.p>
+                </motion.div>
+              ) : (
+                /* ── LETTER CARD ── */
+                <motion.div
+                  key="letter-card"
+                  initial={{ opacity: 0, scale: 0.75, y: 40, rotateX: 8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+                  exit={{ opacity: 0, scale: 0.85, y: 20 }}
+                  transition={{ type: 'spring', stiffness: 100, damping: 18, mass: 0.95, delay: 0.05 }}
+                  className="relative flex flex-col items-center"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    closeModal()
+                  }}
+                >
+                  <motion.div
+                    className="relative flex flex-col items-center px-10 py-11 rounded-2xl overflow-hidden cursor-pointer"
+                    style={{
+                      width: 'clamp(300px, 86vw, 460px)',
+                      background: 'linear-gradient(170deg, hsl(46 55% 97%) 0%, hsl(40 50% 94%) 50%, hsl(38 46% 91%) 100%)',
+                      boxShadow: '0 0 0 1px rgba(255,220,200,0.25), 0 28px 72px rgba(0,0,0,0.38), 0 8px 32px rgba(180,90,120,0.18)',
+                    }}
+                    whileHover={{ scale: 1.015 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    {/* Ruled lines background */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      {Array.from({ length: 12 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="absolute w-full"
                           style={{
-                            background: 'hsl(340 50% 50%)',
-                            display: typedText.length >= currentLetter.length ? 'none' : 'inline-block',
+                            height: 1,
+                            background: 'hsla(220, 28%, 80%, 0.38)',
+                            top: 52 + i * 22,
                           }}
                         />
-                      </p>
+                      ))}
+                    </div>
 
-                      {/* Signature line */}
-                      <motion.div
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: 1 }}
-                        transition={{ delay: 0.5, duration: 0.8, ease: 'easeOut' }}
-                        className="mt-6 w-20 h-px origin-center"
-                        style={{ background: 'hsl(340 40% 70% / 0.5)' }}
+                    {/* Corner decorations */}
+                    {[
+                      'top-4 left-4 border-t border-l rounded-tl-md',
+                      'top-4 right-4 border-t border-r rounded-tr-md',
+                      'bottom-4 left-4 border-b border-l rounded-bl-md',
+                      'bottom-4 right-4 border-b border-r rounded-br-md',
+                    ].map((cls, i) => (
+                      <div
+                        key={i}
+                        className={`absolute w-8 h-8 opacity-20 ${cls}`}
+                        style={{ borderColor: 'hsl(340 50% 60%)' }}
                       />
-                    </motion.div>
+                    ))}
 
-                    {/* Close hint */}
-                    <motion.p
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 0.6, y: 0 }}
-                      transition={{ delay: 0.8 }}
-                      className="mt-5 text-xs tracking-widest uppercase"
-                      style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 60% 85%)' }}
+                    {/* Heart */}
+                    <motion.span
+                      initial={{ scale: 0, rotate: -15 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ delay: 0.28, type: 'spring', stiffness: 280, damping: 14 }}
+                      className="mb-5 text-3xl relative z-10"
+                      style={{ filter: 'drop-shadow(0 2px 6px rgba(200,90,120,0.32))' }}
                     >
-                      chạm để đóng
-                    </motion.p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                      💌
+                    </motion.span>
 
-            {/* Instruction text */}
-            {!letterRevealed && (
-              <motion.p
-                className="absolute bottom-16 left-1/2 -translate-x-1/2 text-xs tracking-widest uppercase text-center"
-                style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 60% 85%)' }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.7 }}
-                transition={{ delay: 0.6 }}
-              >
-                {flapOpen ? 'chạm lần nữa để đọc thư' : 'chạm phong thư để mở'}
-              </motion.p>
-            )}
+                    {/* Text */}
+                    <p
+                      className="text-center leading-relaxed relative z-10"
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 'clamp(1.25rem, 4vw, 1.65rem)',
+                        color: 'hsl(325 45% 26%)',
+                        lineHeight: 1.65,
+                        minHeight: '3em',
+                      }}
+                    >
+                      {typedText}
+                      <motion.span
+                        animate={{ opacity: [1, 0] }}
+                        transition={{ duration: 0.48, repeat: Infinity }}
+                        className="inline-block w-0.5 h-5 ml-1 align-middle"
+                        style={{
+                          background: 'hsl(340 50% 52%)',
+                          display: typedText.length >= currentLetter.length ? 'none' : 'inline-block',
+                        }}
+                      />
+                    </p>
+
+                    {/* Signature line */}
+                    <motion.div
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ delay: 0.5, duration: 0.75, ease: 'easeOut' }}
+                      className="mt-6 w-16 h-px origin-center relative z-10"
+                      style={{ background: 'hsl(340 38% 70% / 0.45)' }}
+                    />
+                  </motion.div>
+
+                  <motion.p
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 0.58, y: 0 }}
+                    transition={{ delay: 0.75 }}
+                    className="mt-5 text-xs tracking-widest uppercase"
+                    style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 60% 84%)' }}
+                  >
+                    chạm để đóng
+                  </motion.p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
