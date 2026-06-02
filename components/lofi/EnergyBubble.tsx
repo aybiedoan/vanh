@@ -4,22 +4,33 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const LETTERS = [
-  'Cô bé ơi, anh tin em sẽ làm được mà.',
+  'Cố lên nhé, anh tin em sẽ làm được mà.',
   'Từng trang sách em học là một bước tiến đến tương lai rực rỡ.',
-  'Áp lực là dấu hiệu của sự trưởng thành — em đang lớn lên đấy.',
+  'Áp lực là dấu hiệu của sự trưởng thành, em đang lớn lên đấy',
   'Hít thở sâu đi nha. Mọi thứ rồi sẽ ổn thôi, anh hứa.',
   'Em học chăm chỉ lắm rồi. Bây giờ cứ tin vào chính mình.',
-  'Đừng so sánh mình với ai khác. Em có hành trình của riêng mình.',
+  'Đừng so sánh mình với ai khác. Em có cuộc đời của riêng mình.',
   'Một ngày nào đó em sẽ nhìn lại và mỉm cười với khoảnh khắc này.',
-  'Mỗi đêm thức khuya ôn bài là một viên gạch xây nên tương lai.',
-  'Anh tự hào về em mỗi ngày, dù em có biết hay không.',
-  'Cơ thể cần nghỉ ngơi, tâm trí cần yên bình — em xứng đáng có cả hai.',
+  'Cơ thể cần nghỉ ngơi, tâm trí cần yên bình, em xứng đáng có cả hai.',
   'Khó khăn không định nghĩa em. Cách em vượt qua mới là điều quan trọng.',
-  'Cô bé nhỏ của anh, em mạnh mẽ hơn em nghĩ rất nhiều đó.',
-  'Thi xong rồi mình sẽ đi ăn kem nhé, anh đãi. Cố lên nào!',
+  'Em mạnh mẽ hơn em nghĩ rất nhiều đó.',
   'Em không cần hoàn hảo. Em chỉ cần cố gắng hết sức là đủ.',
   'Anh luôn ở đây, dù đêm muộn hay sáng sớm, cứ nhắn anh nha.',
-]
+  "Mệt rồi thì nghỉ 5 phút uống ngụm nước đi nha!",
+  "Em vốn là một sự tồn tại độc nhất và rực rỡ. Đừng nghi ngờ năng lực của bản thân, sự kiên trì của em sẽ được đền đáp xứng đáng.",
+  "Hít một hơi thật sâu, em làm được mà ✨",
+  "Không cần hoàn hảo ngay, chỉ cần cố gắng thay đổi từng chút thôi.",
+  "Hôm nay học chậm cũng không sao, mai rùi đi tiếp.",
+  "Em đã đi được xa lắm rồi, đừng quên tự thưởng nha.",
+  "12 năm đi học chỉ được đánh giá qua vài giờ ngắn ngủi. Vậy nên đừng bỏ cuộc",
+  "Hi vọng em mãi kiên cường, đi đến cuối đường hầm sẽ thấy ánh sáng, sống cuộc đời mà mình mong ước",
+  "Vũ trụ sẽ xếp những điều tốt đẹp dành cho em.",
+  "Hôm nay có thể là một ngày khó khăn nhưng nó sẽ không kéo dài mãi đâu",
+  "Chỉ cần em còn bước tiếp, ngày mai nhất định sẽ tốt hơn.",
+  "Đề khó cỡ nào cũng đừng nản, kiểu gì em cũng phải trải qua 100 phút mà.",
+  "Cười lên đi! Em cười rất xinh đó ✨",
+  "Mỗi người chúng ta đều luôn so sảnh điểm yếu của bản thân với điểm mạnh của người khác, nhưng thực tế phần lớn chúng ta đều là người bình thường",
+];
 
 type Particle = {
   id: number
@@ -294,7 +305,7 @@ export default function EnergyBubble() {
               className="absolute right-12 whitespace-nowrap text-xs tracking-wide pointer-events-none select-none"
               style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 80% 88%)' }}
             >
-              Nạp năng lượng
+              Sạc pin nhé!
             </motion.span>
           )}
         </AnimatePresence>

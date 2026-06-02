@@ -26,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="vi" className={`${quicksand.variable} ${msMadi.variable}`}>
-      <body className="antialiased overflow-hidden">{children}</body>
+    <html lang="vi" className={`${quicksand.variable} ${msMadi.variable}`} suppressHydrationWarning>
+      <body className="antialiased overflow-hidden" suppressHydrationWarning>{children}</body>
     </html>
   )
 }

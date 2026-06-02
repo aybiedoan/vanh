@@ -252,20 +252,13 @@ export default function PlaylistWidget() {
   }, [tracks])
 
   // Load YouTube API
-  useEffect(() => {
-    if (ytApiLoaded.current) return
-    ytApiLoaded.current = true
+  // Thay thế đoạn useEffect Load YouTube API cũ trong PlaylistWidget bằng đoạn này:
+useEffect(() => {
+  // Hàm khởi tạo Player tách riêng để tái sử dụng
+  const initYTPlayer = () => {
+    if (!playerContainerRef.current || playerRef.current) return
 
-    if (!document.getElementById('yt-api-script')) {
-      const tag = document.createElement('script')
-      tag.id = 'yt-api-script'
-      tag.src = 'https://www.youtube.com/iframe_api'
-      tag.async = true
-      document.head.appendChild(tag)
-    }
-
-    window.onYouTubeIframeAPIReady = () => {
-      if (!playerContainerRef.current) return
+    try {
       playerRef.current = new window.YT.Player(playerContainerRef.current, {
         width: '1',
         height: '1',
@@ -283,7 +276,6 @@ export default function PlaylistWidget() {
         events: {
           onReady: () => {
             setPlayerReady(true)
-            // Auto-play first track if playlist exists
             try {
               const saved = getCookie('lofi-playlist')
               if (saved) {
@@ -305,14 +297,49 @@ export default function PlaylistWidget() {
             } else if (e.data === window.YT.PlayerState.ENDED) {
               setIsPlaying(false)
               stopProgressPoll()
-              // Use ref to avoid stale closure — always calls latest logic
               handleTrackEndRef.current()
             }
           },
         },
       })
+    } catch (e) {
+      console.warn('Failed to initialize YT Player:', e)
     }
-  }, [])
+  }
+
+  // BƯỚC QUAN TRỌNG: Nếu global object YT đã sẵn sàng (ở các lần remount sau)
+  if (window.YT && window.YT.Player) {
+    initYTPlayer()
+  } else {
+    // Nếu là lần đầu tiên load trang, gán vào callback chờ script gọi
+    const existingCallback = window.onYouTubeIframeAPIReady
+    window.onYouTubeIframeAPIReady = () => {
+      if (existingCallback) existingCallback()
+      initYTPlayer()
+    }
+
+    if (!document.getElementById('yt-api-script')) {
+      const tag = document.createElement('script')
+      tag.id = 'yt-api-script'
+      tag.src = 'https://www.youtube.com/iframe_api'
+      tag.async = true
+      document.head.appendChild(tag)
+    }
+  }
+
+  // Cleanup function: Hủy player khi user bấm vào showroom để giải phóng DOM
+  return () => {
+    stopProgressPoll()
+    if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+      try {
+        playerRef.current.destroy()
+        playerRef.current = null
+      } catch (e) {
+        console.warn('Failed to destroy YT player instance:', e)
+      }
+    }
+  }
+}, [startProgressPoll, stopProgressPoll])
 
   // Load & play track when idx changes
   useEffect(() => {

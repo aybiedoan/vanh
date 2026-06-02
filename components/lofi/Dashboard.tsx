@@ -90,7 +90,7 @@ function GiftPortalButton({ onOpen }: { onOpen: () => void }) {
             className="absolute right-12 whitespace-nowrap text-xs tracking-wide pointer-events-none select-none"
             style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 80% 88%)' }}
           >
-            Quà 1/6 của bé con...
+            Quà 1/6 nè, mở ra xem đi
           </motion.span>
         )}
       </AnimatePresence>

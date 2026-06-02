@@ -53,10 +53,37 @@ function generateDecorativeStars(count: number, width: number, height: number): 
 function generateStars(count: number, width: number, height: number): Star[] {
   const padding = 80
   const rand = seededRandom(99)
-  return Array.from({ length: count }, (_, i) => {
-    const x = padding + rand() * (width - padding * 2)
-    const y = padding + rand() * (height - padding * 2)
-    return {
+  const stars: Star[] = []
+  
+  // ─── CẤU HÌNH PHÂN BỔ ──────────────────────────────────────────────────────
+  const minDistance = 50  // Khoảng cách tối thiểu giữa các tâm sao (tính bằng pixel)
+  const maxAttempts = 100 // Số lần thử lại tối đa cho mỗi ngôi sao để tránh treo trình duyệt
+  // ───────────────────────────────────────────────────────────────────────────
+
+  for (let i = 0; i < count; i++) {
+    let x = 0
+    let y = 0
+    let isValid = false
+    let attempts = 0
+
+    while (!isValid && attempts < maxAttempts) {
+      x = padding + rand() * (width - padding * 2)
+      y = padding + rand() * (height - padding * 2)
+      attempts++
+
+      // Kiểm tra khoảng cách với tất cả các ngôi sao đã được chấp thuận trước đó
+      isValid = true
+      for (const existingStar of stars) {
+        const dist = Math.hypot(x - existingStar.baseX, y - existingStar.baseY)
+        if (dist < minDistance) {
+          isValid = false
+          break // Bị trùng/quá gần, bẻ gãy vòng lặp để tìm tọa độ khác
+        }
+      }
+    }
+
+    // Sau khi tìm được vị trí hợp lệ (hoặc đã cố hết 100 lần thử), đưa vào mảng
+    stars.push({
       id: i,
       x,
       y,
@@ -64,8 +91,10 @@ function generateStars(count: number, width: number, height: number): Star[] {
       baseY: y,
       floatOffset: rand() * Math.PI * 2,
       floatSpeed: 0.35 + rand() * 0.45,
-    }
-  })
+    })
+  }
+
+  return stars
 }
 
 function getNearest(stars: Star[], idx: number, count: number): number[] {
@@ -86,12 +115,16 @@ function PreloadedImage({
   fallbackIdx,
   className,
   style,
+  objectFit = 'cover',
+  imgStyle, // 1. Thêm prop này để truyền style riêng cho thẻ img
 }: {
   src: string
   alt: string
   fallbackIdx: number
   className?: string
   style?: React.CSSProperties
+  objectFit?: 'cover' | 'contain' | 'fill'
+  imgStyle?: React.CSSProperties // Định nghĩa kiểu dữ liệu
 }) {
   const [imageSrc, setImageSrc] = useState(src)
   const [loaded, setLoaded] = useState(false)
@@ -118,9 +151,10 @@ function PreloadedImage({
         style={{
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
+          objectFit: objectFit,
           opacity: loaded ? 1 : 0,
           transition: 'opacity 0.4s ease',
+          ...imgStyle, // 2. Kế thừa style động tại đây
         }}
         onLoad={() => setLoaded(true)}
         onError={() => setImageSrc(getFallbackImage(fallbackIdx))}
@@ -172,14 +206,24 @@ function TypewriterText({ text, delay = 0 }: { text: string; delay?: number }) {
   useEffect(() => {
     setDisplayed('')
     let idx = 0
+    const textLength = text.length
+    let iv: ReturnType<typeof setInterval> | null = null
+
     const t = setTimeout(() => {
-      const iv = setInterval(() => {
-        if (idx < text.length) { setDisplayed(text.slice(0, ++idx)) }
-        else clearInterval(iv)
+      iv = setInterval(() => {
+        if (idx < textLength) {
+          idx++
+          setDisplayed(text.slice(0, idx))
+        } else if (iv) {
+          clearInterval(iv)
+        }
       }, 40)
-      return () => clearInterval(iv)
     }, delay)
-    return () => clearTimeout(t)
+
+    return () => {
+      clearTimeout(t)
+      if (iv) clearInterval(iv)
+    }
   }, [text, delay])
 
   return (
@@ -203,49 +247,99 @@ function TypewriterText({ text, delay = 0 }: { text: string; delay?: number }) {
 function PhotoCarousel3D({ activeIndex }: { activeIndex: number }) {
   const rotationRef = useRef(0)
   const [rotation, setRotation] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  
+  const dragStartXRef = useRef(0)
+  const dragStartRotationRef = useRef(0)
+  const velocityRef = useRef(0)
+  
+  const lastXRef = useRef(0)
+  const lastTimeRef = useRef(0)
+
   const photos = MEMORIES
-  const count = photos.length
-  const angleStep = 360 / count
+  const DISPLAY_COUNT = Math.min(18, photos.length)
+  const angleStep = 360 / DISPLAY_COUNT
   const radius = typeof window !== 'undefined' ? Math.min(260, window.innerWidth * 0.32) : 260
 
-  // 1. Tự động quay chậm liên tục
   useEffect(() => {
     let frame: number
     let lastTime = performance.now()
     const animate = (now: number) => {
       const dt = Math.min(now - lastTime, 50)
       lastTime = now
-      rotationRef.current += 0.04 * (dt / 16.67)
+      if (!isDragging) {
+        rotationRef.current += (0.04 * (dt / 16.67)) + velocityRef.current
+        velocityRef.current *= 0.96 
+        if (Math.abs(velocityRef.current) < 0.01) velocityRef.current = 0
+      }
       setRotation(rotationRef.current)
       frame = requestAnimationFrame(animate)
     }
     frame = requestAnimationFrame(animate)
     return () => cancelAnimationFrame(frame)
-  }, [])
+  }, [isDragging])
 
-  // 2. Tính toán xem ảnh nào đang lướt qua chính diện
   const getFrontIndex = useCallback(() => {
     let closestIdx = 0
     let smallestAngleDiff = 180
-
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < DISPLAY_COUNT; i++) {
       const photoWorldAngle = (angleStep * i + rotation) % 360
       const normalizedAngle = (photoWorldAngle + 360) % 360
-      
       let angleDiff = normalizedAngle
-      if (angleDiff > 180) {
-        angleDiff = 360 - angleDiff
-      }
-      
+      if (angleDiff > 180) angleDiff = 360 - angleDiff
       if (angleDiff < smallestAngleDiff) {
         smallestAngleDiff = angleDiff
         closestIdx = i
       }
     }
     return closestIdx
-  }, [rotation, count, angleStep])
+  }, [rotation, DISPLAY_COUNT, angleStep])
 
   const frontIndex = getFrontIndex()
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+    dragStartXRef.current = e.clientX
+    dragStartRotationRef.current = rotationRef.current
+    lastXRef.current = e.clientX
+    lastTimeRef.current = performance.now()
+    velocityRef.current = 0
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return
+    e.preventDefault()
+    e.stopPropagation()
+    const currentX = e.clientX
+    const now = performance.now()
+    const dt = Math.max(now - lastTimeRef.current, 1)
+    const dragDist = currentX - dragStartXRef.current
+    const rotationDelta = (dragDist / 220) * angleStep 
+    rotationRef.current = dragStartRotationRef.current + rotationDelta
+    setRotation(rotationRef.current)
+    const deltaX = currentX - lastXRef.current
+    const deltaRotation = (deltaX / 220) * angleStep
+    velocityRef.current = (deltaRotation / dt) * 16.67
+    lastXRef.current = currentX
+    lastTimeRef.current = now
+  }
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (!isDragging) return
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    const now = performance.now()
+    if (now - lastTimeRef.current > 100) {
+      velocityRef.current = 0
+    } else {
+      velocityRef.current = Math.max(-12, Math.min(12, velocityRef.current))
+    }
+  }
+
+  const isMoving = isDragging || Math.abs(velocityRef.current) > 0.05
 
   return (
     <div
@@ -257,21 +351,25 @@ function PhotoCarousel3D({ activeIndex }: { activeIndex: number }) {
         maxHeight: 380,
         perspective: 1100,
         perspectiveOrigin: '50% 50%',
-      }}
+        cursor: isDragging ? 'grabbing' : 'grab',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+      } as any}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
     >
       <div
         className="absolute inset-0 flex items-center justify-center"
         style={{
           transformStyle: 'preserve-3d',
           transform: `rotateY(${rotation}deg)`,
+          pointerEvents: isDragging ? 'none' : 'auto',
         }}
       >
-        {photos.map((photo, idx) => {
+        {Array.from({ length: DISPLAY_COUNT }).map((_, idx) => {
           const angle = angleStep * idx
-          const rad = (angle * Math.PI) / 180
-          const x = Math.sin(rad) * radius
-          const z = Math.cos(rad) * radius
-          
           const isFront = idx === frontIndex
 
           let diff = (-rotation - (-angle)) % 360
@@ -279,19 +377,44 @@ function PhotoCarousel3D({ activeIndex }: { activeIndex: number }) {
           if (diff < -180) diff += 360
 
           const targetRotateY = isFront ? (-angle + diff) : -angle
+          
+          // ─── THAY ĐỔI QUAN TRỌNG ĐỂ FIX LỖI LỆCH TÂM ───────────────────────
+          // Thay vì cộng extraZ vào TranslateZ, ta cộng thẳng vào bán kính (Radius) của Slot này.
+          const extraRadius = isFront ? 85 : 0
+          const currentRadius = radius + extraRadius
+          
+          const rad = (angle * Math.PI) / 180
+          const x = Math.sin(rad) * currentRadius
+          const z = Math.cos(rad) * currentRadius
+          // ──────────────────────────────────────────────────────────────────
 
-          // THAY ĐỔI TẠI ĐÂY: Tăng từ 35 lên 75 để đẩy ảnh nổi bật lên hẳn phía trước,
-          // tạo khoảng cách an toàn tuyệt đối, không cho ảnh bên cạnh đâm xuyên qua.
-          const extraZ = isFront ? 75 : 0
+          let distanceFromFront = Math.abs(idx - frontIndex)
+          if (distanceFromFront > DISPLAY_COUNT / 2) {
+            distanceFromFront = DISPLAY_COUNT - distanceFromFront
+          }
+          const zIndex = DISPLAY_COUNT - distanceFromFront
+
+          const totalShift = Math.round(-rotation / angleStep)
+          const frontPhotoIdx = ((totalShift % photos.length) + photos.length) % photos.length
+          
+          let normAngle = (angleStep * idx + rotation) % 360
+          if (normAngle > 180) normAngle -= 360
+          if (normAngle < -180) normAngle += 360
+          
+          const stepsFromFront = Math.round(normAngle / angleStep)
+          const photoIdx = ((frontPhotoIdx + stepsFromFront) % photos.length + photos.length) % photos.length
+          const photo = photos[photoIdx]
 
           return (
             <div
               key={idx}
               className="absolute"
               style={{
-                transform: `translateX(${x}px) translateZ(${z + extraZ}px) rotateY(${targetRotateY}deg)`,
+                // FIX: Chỉ dùng `z` thuần túy vì extraRadius đã xử lý độ nhô 3D hoàn hảo và cân bằng
+                transform: `translateX(${x}px) translateZ(${z}px) rotateY(${targetRotateY}deg)`,
                 transformStyle: 'preserve-3d',
-                transition: 'transform 0.4s ease-out', 
+                transition: isMoving ? 'none' : 'transform 0.4s ease-out', 
+                zIndex: zIndex,
               }}
             >
               <div
@@ -314,7 +437,7 @@ function PhotoCarousel3D({ activeIndex }: { activeIndex: number }) {
                 <PreloadedImage
                   src={photo.image}
                   alt={photo.caption}
-                  fallbackIdx={idx}
+                  fallbackIdx={photoIdx}
                   style={{ width: '100%', height: '100%' }}
                 />
               </div>
@@ -366,7 +489,6 @@ function GreetingView({
       timerRef.current = setTimeout(() => {
         setDone(true)
         try { localStorage.setItem(HAS_SEEN_GREETING_KEY, 'true') } catch (_) {}
-        timerRef.current = setTimeout(onComplete, 1600)
       }, 1200)
       return clear
     }
@@ -507,11 +629,14 @@ function GreetingView({
 
       <AnimatePresence>
         {done && (
-          <motion.div
+          <motion.button
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="mt-8 px-6 py-2.5 rounded-full"
+            onClick={() => onComplete()}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="mt-8 px-8 py-2.5 rounded-full cursor-pointer"
             style={{
               background: 'rgba(60,25,60,0.55)',
               backdropFilter: 'blur(14px)',
@@ -522,8 +647,8 @@ function GreetingView({
               letterSpacing: '0.05em',
             }}
           >
-            Đang mở bầu trời sao...
-          </motion.div>
+            Vào bầu trời sao
+          </motion.button>
         )}
       </AnimatePresence>
     </motion.div>
@@ -566,7 +691,7 @@ function StarField({ count, seed }: { count: number; seed: number }) {
 
 // ─── Audio Player Hook ────────────────────────────────────────────────────────
 
-const AMBIENT_MUSIC_URL = 'https://nkfwybiufcddmxyavcba.supabase.co/storage/v1/object/sign/Aybie/music.mp3?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wZDE0MDQ2Yi1kOTUwLTQ1ZjMtYTRjNC1iMjY2MWMxMzVlYTEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJBeWJpZS9tdXNpYy5tcDMiLCJpYXQiOjE3ODAzMjgyMjIsImV4cCI6MTg3NDkzNjIyMn0.yp0oaoWXuWiuzvWv6HHKeCcTe6OU71_WkLrfG6UM18E'
+const AMBIENT_MUSIC_URL = 'https://nkfwybiufcddmxyavcba.supabase.co/storage/v1/object/sign/Aybie/music-1.mp3?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wZDE0MDQ2Yi1kOTUwLTQ1ZjMtYTRjNC1iMjY2MWMxMzVlYTEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJBeWJpZS9tdXNpYy0xLm1wMyIsImlhdCI6MTc4MDM1Njg1NywiZXhwIjoxOTA2NTAwODU3fQ.PYL_Cd-4GkYHWz211krkOyx3GmPwOTeLCeTulMuu2YM'
 
 function useAmbientMusic() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -615,6 +740,7 @@ function StarSkyView({
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [isClient, setIsClient] = useState(false)
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 })
   const [stars, setStars] = useState<Star[]>([])
   const [decorativeStars, setDecorativeStars] = useState<DecorativeStar[]>([])
@@ -646,6 +772,7 @@ function StarSkyView({
   }, [])
 
   useEffect(() => {
+    setIsClient(true)
     const onResize = () => {
       const w = window.innerWidth
       const h = window.innerHeight
@@ -733,45 +860,64 @@ function StarSkyView({
 
   useEffect(() => { drawCanvas() }, [drawCanvas])
 
+  // ─── Vòng lặp Animation & Tính toán Hover Hợp nhất ──────────────────────────
   useEffect(() => {
     let frame: number
+    
     const animate = () => {
       const t = performance.now() * 0.001
       const mx = smoothMouseX.get()
       const my = smoothMouseY.get()
-      setStars((prev) =>
-        prev.map((star) => {
+      
+      let closestIdx: number | null = null
+      let minDist = 32
+
+      setStars((prev) => {
+        // Guard chống lỗi chạy trên mảng rỗng lúc khởi tạo hoặc hydration
+        if (prev.length === 0) return prev
+        
+        return prev.map((star, i) => {
           const floatY = Math.sin(t * star.floatSpeed + star.floatOffset) * 5
           const dx = mx - star.baseX
           const dy = my - star.baseY
           const dist = Math.hypot(dx, dy)
+          
           let mx2 = 0, my2 = 0
           if (dist < MAGNETIC_RADIUS && dist > 0) {
             const force = (1 - dist / MAGNETIC_RADIUS) * 11
             mx2 = (dx / dist) * force
             my2 = (dy / dist) * force
           }
-          return { ...star, x: star.baseX + mx2, y: star.baseY + floatY + my2 }
+          
+          const nextX = star.baseX + mx2
+          const nextY = star.baseY + floatY + my2
+
+          // Tính toán ngôi sao gần chuột nhất ngay tại đây
+          if (!isMobile) {
+            const mouseDist = Math.hypot(nextX - mx, nextY - my)
+            if (mouseDist < minDist) {
+              minDist = mouseDist
+              closestIdx = i
+            }
+          }
+
+          return { ...star, x: nextX, y: nextY }
         })
-      )
+      })
+
+      // Chỉ cập nhật state nếu giá trị thực sự thay đổi để tránh re-render thừa
+      if (!isMobile) {
+        setHoveredStar((prevHovered) => (prevHovered !== closestIdx ? closestIdx : prevHovered))
+      } else {
+        setHoveredStar(null)
+      }
+
       frame = requestAnimationFrame(animate)
     }
+
     animate()
     return () => cancelAnimationFrame(frame)
-  }, [smoothMouseX, smoothMouseY])
-
-  useEffect(() => {
-    if (isMobile) return
-    const mx = smoothMouseX.get()
-    const my = smoothMouseY.get()
-    let closest: number | null = null
-    let minDist = 32
-    stars.forEach((star, i) => {
-      const d = Math.hypot(star.x - mx, star.y - my)
-      if (d < minDist) { minDist = d; closest = i }
-    })
-    setHoveredStar(closest)
-  }, [stars, smoothMouseX, smoothMouseY, isMobile])
+  }, [isMobile, smoothMouseX, smoothMouseY]) // Thêm các phụ thuộc cần thiết cho vòng lặp
 
   const getMemory = (idx: number): MemoryItem =>
     MEMORIES[idx] || { image: getFallbackImage(idx), caption: '' }
@@ -787,7 +933,7 @@ function StarSkyView({
       <canvas ref={canvasRef} className="absolute inset-0" style={{ zIndex: 0 }} />
 
       <div className="absolute inset-0" style={{ zIndex: 10 }}>
-        {stars.map((star, idx) => {
+        {isClient && stars.map((star, idx) => {
           const isHovered = hoveredStar === idx
           const memory = getMemory(idx)
           return (
@@ -963,13 +1109,17 @@ function StarSkyView({
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.82, opacity: 0, y: 18 }}
               transition={{ type: 'spring', stiffness: 100, damping: 18 }}
-              className="relative max-w-xl w-full mx-4 p-6 text-center"
+              // THAY ĐỔI: Sử dụng w-fit và max-w linh hoạt thay vì max-w-xl cố định
+              className="relative mx-4 p-6 text-center w-fit max-w-[calc(100vw-32px)] sm:max-w-[460px]"
               style={{
                 background: 'rgba(45,20,48,0.72)',
                 backdropFilter: 'blur(26px)',
                 border: '1px solid rgba(255,175,220,0.18)',
                 borderRadius: 22,
                 boxShadow: '0 24px 80px rgba(0,0,0,0.55)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -986,6 +1136,7 @@ function StarSkyView({
                   border: '1px solid rgba(255,175,220,0.2)',
                   color: 'hsl(320 55% 84%)',
                   cursor: 'pointer',
+                  zIndex: 10,
                 }}
               >
                 <X size={16} />
@@ -995,13 +1146,22 @@ function StarSkyView({
                 src={getMemory(selectedStar).image}
                 alt={getMemory(selectedStar).caption}
                 fallbackIdx={selectedStar}
-                className="mx-auto overflow-hidden"
+                className="mx-auto overflow-hidden flex items-center justify-center"
+                objectFit="contain"
+                // THAY ĐỔI: Bỏ hoàn toàn aspectRatio: '4/3'. Hãy để khung tự co giãn theo ảnh gốc
                 style={{
-                  width: '100%',
-                  maxWidth: 380,
-                  aspectRatio: '4/3',
+                  maxHeight: '62vh',
+                  maxWidth: '100%',
                   borderRadius: 14,
                   boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+                  background: 'rgba(20, 10, 25, 0.3)',
+                }}
+                // THAY ĐỔI: Ép thẻ img thực tế chạy theo tỉ lệ gốc (auto) và giới hạn chiều cao an toàn
+                imgStyle={{
+                  width: 'auto',
+                  height: 'auto',
+                  maxWidth: '100%',
+                  maxHeight: '62vh',
                 }}
               />
 
@@ -1009,12 +1169,13 @@ function StarSkyView({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.28 }}
-                className="mt-5"
+                className="mt-5 w-full"
                 style={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+                  fontSize: 'clamp(1.2rem, 3.8vw, 1.6rem)', // Thu nhỏ nhẹ font size để cân bằng với ảnh dọc
                   color: 'hsl(318 40% 90%)',
                   lineHeight: 1.4,
+                  wordBreak: 'break-word'
                 }}
               >
                 <TypewriterText text={getMemory(selectedStar).caption} delay={380} />

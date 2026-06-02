@@ -137,7 +137,7 @@ export default function CountdownTimer() {
         className="mt-6 text-sm italic text-center"
         style={{ fontFamily: 'var(--font-body)', color: 'hsl(332 60% 78%)', maxWidth: 380 }}
       >
-        Áp lực thi cử cứ chia bớt một phần cho anh gánh cùng nha.
+        Cứ bình tĩnh ôn luyện, phía trước chắc chắn sẽ rực rỡ.
       </motion.p>
     </div>
   )
