@@ -263,6 +263,7 @@ useEffect(() => {
         width: '1',
         height: '1',
         videoId: '',
+        host: 'https://www.youtube-nocookie.com',
         playerVars: {
           autoplay: 1,
           controls: 0,
