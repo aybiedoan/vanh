@@ -148,6 +148,7 @@ function PreloadedImage({
       <img
         src={imageSrc}
         alt={alt}
+        loading="eager"
         style={{
           width: '100%',
           height: '100%',
@@ -755,23 +756,6 @@ function StarSkyView({
   const MAGNETIC_RADIUS = 55
 
   useEffect(() => {
-    const load = (start: number) => {
-      const end = Math.min(start + 5, MEMORIES.length)
-      for (let i = start; i < end; i++) {
-        const img = new window.Image()
-        img.crossOrigin = 'anonymous'
-        img.src = MEMORIES[i].image
-      }
-    }
-    load(0)
-    const timers: ReturnType<typeof setTimeout>[] = []
-    for (let i = 5; i < MEMORIES.length; i += 5) {
-      timers.push(setTimeout(() => load(i), (i / 5) * 500))
-    }
-    return () => timers.forEach(clearTimeout)
-  }, [])
-
-  useEffect(() => {
     setIsClient(true)
     const onResize = () => {
       const w = window.innerWidth
@@ -1194,6 +1178,17 @@ export default function Showroom({ onBack: onBackParent }: { onBack: () => void 
   const [phase, setPhase] = useState<ViewPhase>('greeting')
   const [hasSeenGreeting, setHasSeenGreeting] = useState(false)
   const { start, toggleMute, muted, started } = useAmbientMusic()
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    
+    // Tải toàn bộ ảnh trong MEMORIES cùng một lúc vào bộ nhớ đệm của trình duyệt
+    MEMORIES.forEach((memory) => {
+      const img = new window.Image()
+      img.crossOrigin = 'anonymous'
+      img.src = memory.image
+    })
+  }, [])
 
   // Handle back button - stop showroom music and return
   const onBack = useCallback(() => {
