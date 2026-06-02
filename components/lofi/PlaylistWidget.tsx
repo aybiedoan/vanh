@@ -524,7 +524,7 @@ useEffect(() => {
 
   return (
     <div
-      className="w-72 rounded-2xl p-4 flex flex-col gap-3"
+      className="w-full max-w-[288px] sm:w-72 rounded-2xl p-4 flex flex-col gap-3"
       style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)' }}
     >
       {/* Hidden YT player — 1x1 pixel off-screen */}

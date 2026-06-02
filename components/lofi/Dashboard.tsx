@@ -42,21 +42,24 @@ export default function Dashboard({ onOpenShowroom }: { onOpenShowroom: () => vo
       </div>
 
       {/* ── BOTTOM-LEFT: Playlist ── */}
+      {/* ── BOTTOM-CENTER (Mobile) / BOTTOM-LEFT (Desktop): Playlist ── */}
       <motion.div
-        initial={{ opacity: 0, x: -30 }}
-        animate={{ opacity: 1, x: 0 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.9, ease: 'easeOut' }}
-        className="absolute bottom-8 left-8 z-20"
+        // Trên mobile: căn giữa cách đáy 24px (bottom-6). Trên desktop: về lại vị trí cũ (left-8 bottom-8)
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 sm:left-8 sm:bottom-8 sm:translate-x-0 z-20 w-full max-w-[288px] sm:max-w-none"
       >
         <PlaylistWidget />
       </motion.div>
 
-      {/* ── BOTTOM-RIGHT: Action Buttons ── */}
+      {/* ── MIDDLE-RIGHT (Mobile) / BOTTOM-RIGHT (Desktop): Action Buttons ── */}
       <motion.div
-        initial={{ opacity: 0, x: 30 }}
+        initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.7, duration: 0.9, ease: 'easeOut' }}
-        className="absolute bottom-8 right-8 z-20 flex flex-col items-end gap-3"
+        // Trên mobile: Đẩy lên cách đáy 270px để nằm gọn gàng ngay phía trên Playlist Widget mà không bị đè.
+        className="absolute bottom-[270px] right-4 sm:bottom-8 sm:right-8 z-20 flex flex-col items-end gap-3"
       >
         {/* Energy Bubble */}
         <EnergyBubble />
