@@ -340,6 +340,54 @@ function PhotoCarousel3D({ activeIndex }: { activeIndex: number }) {
     }
   }
 
+  // ─── TOUCH HANDLERS FOR MOBILE ───────────────────────────────────────────
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation()
+    setIsDragging(true)
+    
+    const touchX = e.touches[0].clientX
+    dragStartXRef.current = touchX
+    dragStartRotationRef.current = rotationRef.current
+    lastXRef.current = touchX
+    lastTimeRef.current = performance.now()
+    velocityRef.current = 0
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return
+    // Ngăn chặn trình duyệt scroll màn hình khi đang vuốt carousel
+    if (e.cancelable) e.preventDefault()
+    e.stopPropagation()
+    
+    const touchX = e.touches[0].clientX
+    const now = performance.now()
+    const dt = Math.max(now - lastTimeRef.current, 1)
+    
+    const dragDist = touchX - dragStartXRef.current
+    const rotationDelta = (dragDist / 220) * angleStep 
+    rotationRef.current = dragStartRotationRef.current + rotationDelta
+    setRotation(rotationRef.current)
+    
+    const deltaX = touchX - lastXRef.current
+    const deltaRotation = (deltaX / 220) * angleStep
+    velocityRef.current = (deltaRotation / dt) * 16.67
+    
+    lastXRef.current = touchX
+    lastTimeRef.current = now
+  }
+
+  const handleTouchEnd = () => {
+    if (!isDragging) return
+    setIsDragging(false)
+    const now = performance.now()
+    if (now - lastTimeRef.current > 100) {
+      velocityRef.current = 0
+    } else {
+      velocityRef.current = Math.max(-12, Math.min(12, velocityRef.current))
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   const isMoving = isDragging || Math.abs(velocityRef.current) > 0.05
 
   return (
@@ -360,6 +408,9 @@ function PhotoCarousel3D({ activeIndex }: { activeIndex: number }) {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <div
         className="absolute inset-0 flex items-center justify-center"

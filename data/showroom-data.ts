@@ -14,6 +14,7 @@ export type MemoryItem = {
 // Mỗi dòng sẽ được hiển thị lần lượt với hiệu ứng typewriter
 // Giới hạn 2-3 dòng xuất hiện cùng lúc, các dòng cũ sẽ biến mất
 export const GREETING_LINES: string[] = [
+  '...',
   'Gửi ngại ngùng gơ...',
   'Ờm thì...',
   'Hôm qua là ngày 1/6',
