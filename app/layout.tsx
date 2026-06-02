@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: 'Lofi Exam Canvas — Sĩ Tử 2025',
   description: 'Không gian ôn thi bình yên và lãng mạn cho kỳ thi THPT 2025',
   generator: 'v0.app',
+  icons: {
+    icon: '/icon.png',
+  },
 }
 
 export default function RootLayout({
