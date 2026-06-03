@@ -171,7 +171,11 @@ function BeatBars() {
   )
 }
 
-export default function PlaylistWidget() {
+export default function PlaylistWidget({ 
+  containerRef 
+}: { 
+  containerRef?: React.RefObject<HTMLDivElement | null> 
+}) {
   const [tracks, setTracks] = useState<Track[]>([])
   const [inputVal, setInputVal] = useState('')
   const [currentIdx, setCurrentIdx] = useState(0)
@@ -532,6 +536,8 @@ useEffect(() => {
       dragControls={dragControls}
       dragListener={false}
       dragMomentum={false}
+      dragConstraints={containerRef} // Giới hạn vùng kéo nằm gọn trong containerRef nhận từ Dashboard
+      dragElastic={0}                 // Bằng 0 để khóa cứng ngay khi chạm viền, không cho nẩy/trượt lố ra ngoài
       className="w-full max-w-[288px] sm:w-72 rounded-2xl p-3 sm:p-4 flex flex-col gap-3"
       style={{ 
         background: 'rgba(255, 220, 235, 0.02)', // Pha tí ánh hồng vào kính ngầm
@@ -730,13 +736,13 @@ useEffect(() => {
                     onClick={(e) => { e.stopPropagation(); removeTrack(idx); }}
                     className="w-7 h-7 sm:w-6 sm:h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200
                       /* TRÊN MOBILE: Nền đỏ rực, icon trắng tinh, có shadow phát sáng đỏ cực mạnh để không thể bị chìm */
-                      bg-transparent text-white shadow-[0_0_10px_rgba(239,68,68,0.45)]
+                      bg-transparent text-[#ffe3f1]/70
                       /* ── CHẠM TRÊN MOBILE: Đổi sang nền đỏ kính mờ 20% khi ngón tay nhấn giữ ── */
-                      active:bg-red-500/20
+                      active:bg-pink-400/15 active:text-white active:shadow-[0_0_12px_rgba(244,114,182,0.35)]
                       /* TRÊN DESKTOP (sm): Trở lại trạng thái tinh tế - ẩn đi, chỉ hiện icon trắng mờ khi hover vào dòng bài hát */
-                      sm:bg-transparent sm:text-white/60 sm:opacity-0 sm:group-hover:opacity-100 sm:shadow-none
+                      sm:bg-transparent sm:text-[#ffe3f1]/70 sm:opacity-0 sm:group-hover:opacity-100 sm:shadow-none
                       /* KHI DI CHUỘT TRỰC TIẾP VÀO NÚT (Desktop): Bật nền đỏ rực, chữ trắng, phóng to nhẹ */
-                      hover:sm:bg-red-500/20 hover:sm:text-white hover:sm:shadow-[0_0_10px_rgba(239,68,68,0.45)]
+                      hover:sm:bg-pink-400/15 hover:sm:text-white hover:sm:shadow-[0_0_12px_rgba(244,114,182,0.35)]
                       hover:scale-110 active:scale-95"
                   >
                     <Trash2 size={13} />

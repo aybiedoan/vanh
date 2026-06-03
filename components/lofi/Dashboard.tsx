@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CountdownTimer from './CountdownTimer'
 import PlaylistWidget from './PlaylistWidget'
@@ -10,8 +10,9 @@ const VIDEO_SRC =
   'https://nkfwybiufcddmxyavcba.supabase.co/storage/v1/object/sign/Aybie/watermark_removed_03410037-ab6b-486e-b954-3be71a09dd4e.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wZDE0MDQ2Yi1kOTUwLTQ1ZjMtYTRjNC1iMjY2MWMxMzVlYTEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJBeWJpZS93YXRlcm1hcmtfcmVtb3ZlZF8wMzQxMDAzNy1hYjZiLTQ4NmUtYjk1NC0zYmU3MWEwOWRkNGUubXA0IiwiaWF0IjoxNzgwMzIxMzE1LCJleHAiOjE4NzQ5MjkzMTV9.nhx8_ip_ziR4YtSGEuZUDmwVomyqPVjqbOslVczsTFo'
 
 export default function Dashboard({ onOpenShowroom }: { onOpenShowroom: () => void }) {
+  const constraintsRef = useRef<HTMLDivElement>(null)
   return (
-    <div className="fixed inset-0 overflow-hidden">
+    <div ref={constraintsRef} className="fixed inset-0 overflow-hidden">
       {/* Video Background */}
       <video
         src={VIDEO_SRC}
@@ -52,7 +53,7 @@ export default function Dashboard({ onOpenShowroom }: { onOpenShowroom: () => vo
          */
         className="absolute bottom-6 left-0 right-0 mx-auto sm:bottom-8 sm:left-8 sm:right-auto sm:mx-0 z-20 w-full max-w-[288px] sm:max-w-none"
       >
-        <PlaylistWidget />
+        <PlaylistWidget containerRef={constraintsRef} />
       </motion.div>
 
       {/* ── MIDDLE-RIGHT (Mobile) / BOTTOM-RIGHT (Desktop): Action Buttons ── */}
