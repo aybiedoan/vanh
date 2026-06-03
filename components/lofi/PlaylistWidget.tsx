@@ -645,12 +645,25 @@ useEffect(() => {
                   
                   {/* Volume control */}
                   <div className="relative inline-flex" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => setShowVolumeControl(!showVolumeControl)} className="hover:scale-110 transition-all text-[#ffe3f1]/90 hover:text-white">
+                    <button 
+                      onClick={() => setShowVolumeControl(!showVolumeControl)} 
+                      className="hover:scale-110 transition-all hover:text-white text-[#ffe3f1]/90"
+                    >
                       {volume === 0 ? <VolumeX size={14} /> : volume < 50 ? <Volume1 size={14} /> : <Volume2 size={14} />}
                     </button>
                     
                     {showVolumeControl && (
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 flex flex-col items-center gap-2 p-2 rounded-lg bg-purple-950/40 backdrop-blur-md border border-white/5">
+                      <div 
+                        className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 flex flex-col items-center gap-2 p-2 rounded-lg"
+                        style={{ 
+                          // Thay thế màu tím gắt bằng màu mận ấm lofi, vừa giữ độ tương phản cho thanh kéo vừa tiệp dải màu hoàng hôn
+                          background: 'rgba(54, 22, 38, 0.7)', 
+                          backdropFilter: 'blur(10px)',
+                          WebkitBackdropFilter: 'blur(10px)',
+                          border: '1px solid rgba(255, 200, 220, 0.15)', // Viền hồng mảnh tạo hiệu ứng nổi khối glassmorphism
+                          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
+                        }}
+                      >
                         <input
                           type="range"
                           min="0"
@@ -658,9 +671,13 @@ useEffect(() => {
                           value={volume}
                           onChange={(e) => handleVolumeChange(Number(e.target.value))}
                           className="w-24 h-1 rounded-full cursor-pointer"
-                          style={{ appearance: 'none', background: 'rgba(255,255,255,0.15)', outline: 'none' }}
+                          style={{ 
+                            appearance: 'none', 
+                            background: 'rgba(255, 227, 241, 0.2)', // Nền thanh trượt có ánh hồng phấn mờ nhẹ
+                            outline: 'none' 
+                          }}
                         />
-                        <span className="text-xs text-[#ffe3f1]">{volume}%</span>
+                        <span className="text-xs font-semibold text-[#ffe3f1]">{volume}%</span>
                       </div>
                     )}
                   </div>
