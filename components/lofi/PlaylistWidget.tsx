@@ -656,12 +656,12 @@ useEffect(() => {
                       <div 
                         className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 flex flex-col items-center gap-2 p-2 rounded-lg"
                         style={{ 
-                          // Thay thế màu tím gắt bằng màu mận ấm lofi, vừa giữ độ tương phản cho thanh kéo vừa tiệp dải màu hoàng hôn
-                          background: 'rgba(54, 22, 38, 0.7)', 
-                          backdropFilter: 'blur(10px)',
-                          WebkitBackdropFilter: 'blur(10px)',
-                          border: '1px solid rgba(255, 200, 220, 0.15)', // Viền hồng mảnh tạo hiệu ứng nổi khối glassmorphism
-                          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
+                          // NHẠT HƠN: Hạ dung dịch màu xuống mức tối thiểu, đồng điệu tuyệt đối với lớp kính của Playlist
+                          background: 'rgba(255, 220, 235, 0.04)', 
+                          backdropFilter: 'blur(6px)',
+                          WebkitBackdropFilter: 'blur(6px)',
+                          border: '1px solid rgba(255, 200, 220, 0.08)', // Viền hồng phấn siêu mảnh
+                          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
                         }}
                       >
                         <input
@@ -673,7 +673,7 @@ useEffect(() => {
                           className="w-24 h-1 rounded-full cursor-pointer"
                           style={{ 
                             appearance: 'none', 
-                            background: 'rgba(255, 227, 241, 0.2)', // Nền thanh trượt có ánh hồng phấn mờ nhẹ
+                            background: 'rgba(255, 227, 241, 0.15)', // Làm nhạt thanh rãnh trượt bên trong
                             outline: 'none' 
                           }}
                         />
