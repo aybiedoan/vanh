@@ -41,14 +41,16 @@ export default function Dashboard({ onOpenShowroom }: { onOpenShowroom: () => vo
         </motion.div>
       </div>
 
-      {/* ── BOTTOM-LEFT: Playlist ── */}
       {/* ── BOTTOM-CENTER (Mobile) / BOTTOM-LEFT (Desktop): Playlist ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.9, ease: 'easeOut' }}
-        // Trên mobile: căn giữa cách đáy 24px (bottom-6). Trên desktop: về lại vị trí cũ (left-8 bottom-8)
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 sm:left-8 sm:bottom-8 sm:translate-x-0 z-20 w-full max-w-[288px] sm:max-w-none"
+        /**
+         * - Mặc định (Mobile): Cách đáy 6 (bottom-6), kéo từ left-0 sang right-0 kết hợp mx-auto để CĂN GIỮA.
+         * - Trên Desktop (sm): Trả về vị trí cũ góc trái (sm:bottom-8 sm:left-8), hủy thuộc tính right và mx cũ (sm:right-auto sm:mx-0).
+         */
+        className="absolute bottom-6 left-0 right-0 mx-auto sm:bottom-8 sm:left-8 sm:right-auto sm:mx-0 z-20 w-full max-w-[288px] sm:max-w-none"
       >
         <PlaylistWidget />
       </motion.div>
