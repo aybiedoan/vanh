@@ -713,7 +713,9 @@ useEffect(() => {
                     onClick={(e) => { e.stopPropagation(); removeTrack(idx); }}
                     className="w-7 h-7 sm:w-6 sm:h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200
                       /* TRÊN MOBILE: Nền đỏ rực, icon trắng tinh, có shadow phát sáng đỏ cực mạnh để không thể bị chìm */
-                      bg-red-500/20 text-white shadow-[0_0_10px_rgba(239,68,68,0.45)]
+                      bg-transparent text-white shadow-[0_0_10px_rgba(239,68,68,0.45)]
+                      /* ── CHẠM TRÊN MOBILE: Đổi sang nền đỏ kính mờ 20% khi ngón tay nhấn giữ ── */
+                      active:bg-red-500/20
                       /* TRÊN DESKTOP (sm): Trở lại trạng thái tinh tế - ẩn đi, chỉ hiện icon trắng mờ khi hover vào dòng bài hát */
                       sm:bg-transparent sm:text-white/60 sm:opacity-0 sm:group-hover:opacity-100 sm:shadow-none
                       /* KHI DI CHUỘT TRỰC TIẾP VÀO NÚT (Desktop): Bật nền đỏ rực, chữ trắng, phóng to nhẹ */
