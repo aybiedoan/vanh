@@ -15,6 +15,7 @@ type Star = {
   baseY: number
   floatOffset: number
   floatSpeed: number
+  baseSize: number
 }
 
 type DecorativeStar = {
@@ -90,7 +91,8 @@ function generateStars(count: number, width: number, height: number): Star[] {
       baseX: x,
       baseY: y,
       floatOffset: rand() * Math.PI * 2,
-      floatSpeed: 0.35 + rand() * 0.45,
+      floatSpeed: 0.12 + rand() * 0.6,
+      baseSize: 10 + rand() * 5,
     })
   }
 
@@ -792,6 +794,7 @@ function StarSkyView({
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [enableMovement, setEnableMovement] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 })
   const [stars, setStars] = useState<Star[]>([])
@@ -896,7 +899,14 @@ function StarSkyView({
   useEffect(() => { drawCanvas() }, [drawCanvas])
 
   // ─── Vòng lặp Animation & Tính toán Hover Hợp nhất ──────────────────────────
-  useEffect(() => {
+useEffect(() => {
+    if (isMobile && !enableMovement) {
+      setStars((prev) => {
+        if (prev.length === 0) return prev
+        return prev.map(star => ({ ...star, x: star.baseX, y: star.baseY }))
+      })
+      return // Dừng toàn bộ effect tại đây, cứu cánh cho pin điện thoại!
+    }
     let frame: number
     
     const animate = () => {
@@ -908,11 +918,14 @@ function StarSkyView({
       let minDist = 32
 
       if (!isMobile) {
-        // TRÊN PC: Giữ nguyên logic tính lực hút từ trường (Magnetic) và tự động hover theo chuột
+        // TRÊN PC: Giữ nguyên logic tính lực hút từ trường (Magnetic) + Bổ sung floatX
         setStars((prev) => {
           if (prev.length === 0) return prev
           return prev.map((star, i) => {
-            const floatY = Math.sin(t * star.floatSpeed + star.floatOffset) * 5
+            // ─── THÊM FLOAT X CHO PC ───
+            const floatX = enableMovement ? Math.cos(t * star.floatSpeed + star.floatOffset) * 3 : 0
+            const floatY = enableMovement ? Math.sin(t * star.floatSpeed + star.floatOffset) * 5 : 0
+
             const dx = mx - star.baseX
             const dy = my - star.baseY
             const dist = Math.hypot(dx, dy)
@@ -924,7 +937,8 @@ function StarSkyView({
               my2 = (dy / dist) * force
             }
             
-            const nextX = star.baseX + mx2
+            // Cộng thêm floatX vào tọa độ tiếp theo của X
+            const nextX = star.baseX + floatX + mx2
             const nextY = star.baseY + floatY + my2
 
             const mouseDist = Math.hypot(nextX - mx, nextY - my)
@@ -938,12 +952,15 @@ function StarSkyView({
         })
         setHoveredStar((prevHovered) => (prevHovered !== closestIdx ? closestIdx : prevHovered))
       } else {
-        // TRÊN MOBILE: Giữ nguyên hiệu ứng float tự nhiên, đóng băng tính toán chuột để nhường quyền cho sự kiện Click gán state
+        // TRÊN MOBILE: Đóng băng tính toán chuột, bổ sung floatX đồng bộ chuyển động xoay tròn
         setStars((prev) => {
           if (prev.length === 0) return prev
           return prev.map((star) => {
+            // ─── THÊM FLOAT X CHO MOBILE ───
+            const floatX = Math.cos(t * star.floatSpeed + star.floatOffset) * 3
             const floatY = Math.sin(t * star.floatSpeed + star.floatOffset) * 5
-            return { ...star, x: star.baseX, y: star.baseY + floatY }
+            
+            return { ...star, x: star.baseX + floatX, y: star.baseY + floatY }
           })
         })
       }
@@ -995,22 +1012,61 @@ function StarSkyView({
               }}
             >
               <motion.div
-                className="rounded-full"
+                className="relative flex items-center justify-center"
                 animate={{
-                  scale: isHovered ? 1.7 : [1, 1.15, 0.95, 1],
-                  opacity: isHovered ? 1 : [0.7, 1, 0.75, 1],
-                  boxShadow: isHovered
-                    ? '0 0 18px 7px rgba(255,195,230,0.9), 0 0 36px 14px rgba(255,145,200,0.45)'
-                    : '0 0 10px 3px rgba(255,215,240,0.55)',
+                  scale: isHovered ? 2.2 : [1, 1.15, 0.95, 1],
+                  opacity: isHovered ? 1 : [0.65, 0.9, 0.75, 0.65],
+                  rotate: isHovered ? 90 : 0, // Xoay nhẹ góc tạo hiệu ứng khúc xạ ánh sáng khi chọn
                 }}
                 transition={{
-                  duration: isHovered ? 0.28 : 3.5,
+                  duration: isHovered ? 0.35 : 4,
                   repeat: isHovered ? 0 : Infinity,
                   delay: (idx * 0.15) % 2,
                   ease: 'easeInOut',
                 }}
-                style={{ width: 10, height: 10, background: 'white' }}
-              />
+                style={{ width: star.baseSize, height: star.baseSize }}
+              >
+                {/* Lớp 1: Hào quang Aura mờ ảo phía sau giúp ngôi sao tách biệt khỏi nền trời */}
+                <motion.div
+                  className="absolute rounded-full pointer-events-none blur-[3px]"
+                  animate={{
+                    scale: isHovered ? [1, 1.3, 1] : 1,
+                  }}
+                  transition={{ repeat: isHovered ? Infinity : 0, duration: 1.8 }}
+                  style={{
+                    inset: -(star.baseSize * 0.7),
+                    background: 'radial-gradient(circle, rgba(255,205,235,0.7) 0%, rgba(255,145,200,0.15) 50%, transparent 100%)',
+                    filter: isHovered ? 'drop-shadow(0 0 8px rgba(255,150,200,0.5))' : 'none'
+                  }}
+                />
+
+                {/* Lớp 2: Ngôi sao 4 cánh nhọn chuẩn hình học sắc nét bằng SVG vẽ vector */}
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-full h-full drop-shadow-[0_0_3px_rgba(255,255,255,0.8)]"
+                  style={{ fill: isHovered ? '#fff0f8' : '#ffffff' }}
+                >
+                  {/* Toạ độ vẽ chòm sao 4 góc nhọn lofi */}
+                  <path d="M12 0L14.8 9.2L24 12L14.8 14.8L12 24L9.2 14.8L0 12L9.2 9.2Z" />
+                </svg>
+                
+                {/* Lớp 3: Tia chớp phụ góc 45 độ (Chỉ bừng lên lấp lánh khi ngôi sao được Hover/Focus) */}
+                <AnimatePresence>
+                  {isHovered && (
+                    <motion.svg
+                      viewBox="0 0 24 24"
+                      className="absolute w-1/2 h-1/2 fill-white/80"
+                      style={{ transform: 'rotate(45deg)' }}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: [0.6, 1.1, 0.6], opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
+                    >
+                      <path d="M12 0L14.8 9.2L24 12L14.8 14.8L12 24L9.2 14.8L0 12L9.2 9.2Z" />
+                    </motion.svg>
+                  )}
+                </AnimatePresence>
+              </motion.div>
               <AnimatePresence>
                 {/* SỬA ĐIỀU KIỆN: Bỏ !isMobile để cho phép điện thoại render ảnh nhỏ xem trước */}
                 {isHovered && (
