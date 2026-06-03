@@ -269,7 +269,7 @@ function PhotoCarousel3D({ activeIndex }: { activeIndex: number }) {
       const dt = Math.min(now - lastTime, 50)
       lastTime = now
       if (!isDragging) {
-        rotationRef.current += (0.04 * (dt / 16.67)) + velocityRef.current
+        rotationRef.current += (0.08 * (dt / 16.67)) + velocityRef.current
         velocityRef.current *= 0.96 
         if (Math.abs(velocityRef.current) < 0.01) velocityRef.current = 0
       }
@@ -907,44 +907,45 @@ function StarSkyView({
       let closestIdx: number | null = null
       let minDist = 32
 
-      setStars((prev) => {
-        // Guard chống lỗi chạy trên mảng rỗng lúc khởi tạo hoặc hydration
-        if (prev.length === 0) return prev
-        
-        return prev.map((star, i) => {
-          const floatY = Math.sin(t * star.floatSpeed + star.floatOffset) * 5
-          const dx = mx - star.baseX
-          const dy = my - star.baseY
-          const dist = Math.hypot(dx, dy)
-          
-          let mx2 = 0, my2 = 0
-          if (dist < MAGNETIC_RADIUS && dist > 0) {
-            const force = (1 - dist / MAGNETIC_RADIUS) * 11
-            mx2 = (dx / dist) * force
-            my2 = (dy / dist) * force
-          }
-          
-          const nextX = star.baseX + mx2
-          const nextY = star.baseY + floatY + my2
+      if (!isMobile) {
+        // TRÊN PC: Giữ nguyên logic tính lực hút từ trường (Magnetic) và tự động hover theo chuột
+        setStars((prev) => {
+          if (prev.length === 0) return prev
+          return prev.map((star, i) => {
+            const floatY = Math.sin(t * star.floatSpeed + star.floatOffset) * 5
+            const dx = mx - star.baseX
+            const dy = my - star.baseY
+            const dist = Math.hypot(dx, dy)
+            
+            let mx2 = 0, my2 = 0
+            if (dist < MAGNETIC_RADIUS && dist > 0) {
+              const force = (1 - dist / MAGNETIC_RADIUS) * 11
+              mx2 = (dx / dist) * force
+              my2 = (dy / dist) * force
+            }
+            
+            const nextX = star.baseX + mx2
+            const nextY = star.baseY + floatY + my2
 
-          // Tính toán ngôi sao gần chuột nhất ngay tại đây
-          if (!isMobile) {
             const mouseDist = Math.hypot(nextX - mx, nextY - my)
             if (mouseDist < minDist) {
               minDist = mouseDist
               closestIdx = i
             }
-          }
 
-          return { ...star, x: nextX, y: nextY }
+            return { ...star, x: nextX, y: nextY }
+          })
         })
-      })
-
-      // Chỉ cập nhật state nếu giá trị thực sự thay đổi để tránh re-render thừa
-      if (!isMobile) {
         setHoveredStar((prevHovered) => (prevHovered !== closestIdx ? closestIdx : prevHovered))
       } else {
-        setHoveredStar(null)
+        // TRÊN MOBILE: Giữ nguyên hiệu ứng float tự nhiên, đóng băng tính toán chuột để nhường quyền cho sự kiện Click gán state
+        setStars((prev) => {
+          if (prev.length === 0) return prev
+          return prev.map((star) => {
+            const floatY = Math.sin(t * star.floatSpeed + star.floatOffset) * 5
+            return { ...star, x: star.baseX, y: star.baseY + floatY }
+          })
+        })
       }
 
       frame = requestAnimationFrame(animate)
@@ -952,7 +953,7 @@ function StarSkyView({
 
     animate()
     return () => cancelAnimationFrame(frame)
-  }, [isMobile, smoothMouseX, smoothMouseY]) // Thêm các phụ thuộc cần thiết cho vòng lặp
+  }, [isMobile, smoothMouseX, smoothMouseY])
 
   const getMemory = (idx: number): MemoryItem =>
     MEMORIES[idx] || { image: getFallbackImage(idx), caption: '' }
@@ -964,6 +965,7 @@ function StarSkyView({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 overflow-hidden"
+      onClick={() => { if (isMobile) setHoveredStar(null) }}
     >
       <canvas ref={canvasRef} className="absolute inset-0" style={{ zIndex: 0 }} />
 
@@ -976,7 +978,21 @@ function StarSkyView({
               key={star.id}
               className="absolute cursor-pointer"
               style={{ left: star.x, top: star.y, transform: 'translate(-50%,-50%)' }}
-              onClick={() => setSelectedStar(idx)}
+              // NÂNG CẤP XỬ LÝ CLICK:
+              onClick={(e) => {
+                e.stopPropagation() // Ngăn nổi bọt lệnh click-away của container bọc ngoài
+                if (isMobile) {
+                  if (hoveredStar === idx) {
+                    // Chạm lần 2: Mở bung Modal chi tiết
+                    setSelectedStar(idx)
+                  } else {
+                    // Chạm lần 1: Kích hoạt hiệu ứng sáng sao, lên line Canvas và hiện ảnh preview
+                    setHoveredStar(idx)
+                  }
+                } else {
+                  setSelectedStar(idx)
+                }
+              }}
             >
               <motion.div
                 className="rounded-full"
@@ -996,14 +1012,21 @@ function StarSkyView({
                 style={{ width: 10, height: 10, background: 'white' }}
               />
               <AnimatePresence>
-                {isHovered && !isMobile && (
+                {/* SỬA ĐIỀU KIỆN: Bỏ !isMobile để cho phép điện thoại render ảnh nhỏ xem trước */}
+                {isHovered && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8, y: 8 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.8, y: 8 }}
                     transition={{ duration: 0.22 }}
                     className="absolute pointer-events-none"
-                    style={{ left: 18, top: -18, zIndex: 30 }}
+                    // TỐI ƯU RESPONSIVE: Trên mobile, đưa ảnh căn giữa đặt thẳng đứng lên trên ngôi sao (cách 165px) để ngón tay chạm không che mất ảnh
+                    style={{ 
+                      left: isMobile ? '50%' : 18, 
+                      top: isMobile ? -165 : -18, 
+                      transform: isMobile ? 'translateX(-50%)' : 'none',
+                      zIndex: 30 
+                    }}
                   >
                     <div
                       className="overflow-hidden"
