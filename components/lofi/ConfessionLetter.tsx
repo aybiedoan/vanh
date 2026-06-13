@@ -57,6 +57,9 @@ export function ConfessionLetterModal() {
     if (password === '1404') {
       setIsError(false)
       setStep('letter')
+      // notify dashboard to pause (give this confession track priority)
+      try { window.dispatchEvent(new Event('confession:play')) } catch {}
+
       // play background music when unlocked (only if supported)
       try {
         const a = audioRef.current
@@ -94,6 +97,8 @@ export function ConfessionLetterModal() {
         /* ignore */
       }
     }
+    // notify dashboard to resume
+    try { window.dispatchEvent(new Event('confession:stop')) } catch {}
   }
 
   return (

@@ -190,6 +190,7 @@ export default function PlaylistWidget({
   const [isCollapsed, setIsCollapsed] = useState(false)
   const dragControls = useDragControls()
   const playerRef = useRef<ReturnType<typeof window.YT.Player> | null>(null)
+  const wasPlayingRef = useRef(false)
   const playerContainerRef = useRef<HTMLDivElement>(null)
   const ytApiLoaded = useRef(false)
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -221,6 +222,34 @@ export default function PlaylistWidget({
 
   // Load from cookies on mount, or initialize with default playlist
   useEffect(() => {
+    // Handlers to pause/resume when confession audio needs priority
+    const onConfessionPlay = () => {
+      try {
+        if (playerRef.current && typeof playerRef.current.getPlayerState === 'function') {
+          const state = playerRef.current.getPlayerState()
+          // 1 = PLAYING
+          if (state === window.YT.PlayerState.PLAYING) {
+            wasPlayingRef.current = true
+            try { playerRef.current.pauseVideo() } catch {}
+          } else {
+            wasPlayingRef.current = false
+          }
+        }
+      } catch (e) {}
+    }
+
+    const onConfessionStop = () => {
+      try {
+        if (playerRef.current && wasPlayingRef.current) {
+          try { playerRef.current.playVideo() } catch {}
+        }
+        wasPlayingRef.current = false
+      } catch (e) {}
+    }
+
+    window.addEventListener('confession:play', onConfessionPlay)
+    window.addEventListener('confession:stop', onConfessionStop)
+
     try {
       const saved = getCookie('lofi-playlist')
       if (saved) {
@@ -248,7 +277,11 @@ export default function PlaylistWidget({
     } catch (e) {
       console.warn('Failed to load playlist from cookie:', e)
     }
-  }, [])
+      return () => {
+        window.removeEventListener('confession:play', onConfessionPlay)
+        window.removeEventListener('confession:stop', onConfessionStop)
+      }
+    }, [])
 
   // Save to cookies whenever tracks change
   useEffect(() => {
