@@ -121,24 +121,7 @@ export function ConfessionLetterModal() {
       // notify dashboard to pause (give this confession track priority)
       try { window.dispatchEvent(new Event('confession:play')) } catch {}
 
-      // play background music when unlocked (only if supported)
-      try {
-        const a = audioRef.current
-        if (a && typeof a.canPlayType === 'function' && a.canPlayType('audio/mpeg')) {
-          try {
-            a.currentTime = 0
-          } catch (_) {
-            /* ignore currentTime set errors */
-          }
-          a.play().catch((playErr) => {
-            console.warn('Confession audio failed to play:', playErr)
-          })
-        } else if (a) {
-          console.warn('Confession audio: browser reports canPlayType false for audio/mpeg')
-        }
-      } catch (err) {
-        console.warn('Confession audio error:', err)
-      }
+      // audio will play after typing completes (playConfessionAudio)
     } else {
       setIsError(true)
       setPassword('')
