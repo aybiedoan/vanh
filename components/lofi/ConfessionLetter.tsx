@@ -18,7 +18,7 @@ function TypingText({ text, onComplete }: { text: string; onComplete?: () => voi
         clearInterval(intervalId)
         if (onComplete) onComplete() // Gọi hàm hiển thị dòng chữ nhỏ phía dưới khi gõ xong
       }
-    }, 75) // Tốc độ gõ chữ (75ms mỗi ký tự - vừa vặn để đọc)
+    }, 100) // Tốc độ gõ chữ (100ms mỗi ký tự - vừa vặn để đọc)
 
     return () => clearInterval(intervalId)
   }, [text])
@@ -95,7 +95,7 @@ export function ConfessionLetterModal() {
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (password === '1404') {
+    if (password === '1406') {
       setIsError(false)
       setStep('letter')
       // notify dashboard to pause (give this confession track priority)
@@ -254,7 +254,7 @@ export function ConfessionLetterModal() {
                   </motion.div>
 
                   <TypingText 
-                    text={`"Anh thích em, \n làm bạn gái anh nha!"`} 
+                    text={`" Anh thích em, \n làm bạn gái anh nha!"`} 
                     onComplete={() => setShowSubText(true)} 
                   />
 
