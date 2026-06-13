@@ -4,42 +4,62 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, Heart, X } from 'lucide-react'
 
-// ─── COMPONENT HIỆU ỨNG TYPING KÈM ÂM THANH ───────────────────────────
+// ─── COMPONENT HIỆU ỨNG TYPING KÈM ÂM THANH CHUẨN XÁC ─────────────────
 function TypingText({ text, onComplete }: { text: string; onComplete?: () => void }) {
   const [displayedText, setDisplayedText] = useState('')
+  const onCompleteRef = useRef(onComplete)
+
+  // Cập nhật reference mới nhất của onComplete để tránh stale closure
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
 
   useEffect(() => {
     let index = 0
-    setDisplayedText('') // Reset text ban đầu
+    let isCancelled = false
+    setDisplayedText('') 
 
-    // ─── KHỞI TẠO ĐỐI TƯỢNG SOUND EFFECT ──────────────────────────────
-    // Bạn thay link URL này bằng file âm thanh gõ phím của bạn nhé (.mp3 hoặc .wav)
-    const typeSound = new Audio('https://nkfwybiufcddmxyavcba.supabase.co/storage/v1/object/sign/Aybie/typing.mp3?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wZDE0MDQ2Yi1kOTUwLTQ1ZjMtYTRjNC1iMjY2MWMxMzVlYTEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJBeWJpZS90eXBpbmcubXAzIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4MTM5MTE1MiwiZXhwIjoxNzgxOTk1OTUyfQ.ocPDuQ5hrz9jd-FQOpeyo0g-atIJ11YD009Mjak_yO4')
-    typeSound.volume = 0.4 // Điều chỉnh âm lượng vừa phải (từ 0 đến 1)
+    // Khởi tạo đối tượng âm thanh gõ phím mẫu
+    const typeSound = new Audio('https://nkfwybiufcddmxyavcba.supabase.co/storage/v1/object/sign/Aybie/typing.mp3?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wZDE0MDQ2Yi1kOTUwLTQ1ZjMtYTRjNC1iMjY2MWMxMzVlYTEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJBeWJpZS90eXBpbmcubXAzIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4MSM5MTE1MiwiZXhwIjoxNzgxOTk1OTUyfQ.ocPDuQ5hrz9jd-FQOpeyo0g-atIJ11YD009Mjak_yO4')
+    typeSound.volume = 0.35
+    typeSound.preload = 'auto'
 
-    const intervalId = setInterval(() => {
-      const nextChar = text.charAt(index)
-      setDisplayedText((prev) => prev + nextChar)
-      
-      // Phát âm thanh nếu ký tự tiếp theo không phải là khoảng trắng hoặc xuống dòng
-      if (nextChar !== ' ' && nextChar !== '\n') {
-        // Tua nhanh về đầu file âm thanh để tránh bị hụt tiếng khi gõ nhanh
-        typeSound.currentTime = 0 
-        typeSound.play().catch(() => {
-          // Trình duyệt chặn tự động phát âm thanh nếu user chưa tương tác, 
-          // nhưng ở đây user đã click "Mở Thư" nên sound sẽ chạy mượt mà.
-        })
+    let timeoutId: ReturnType<typeof setTimeout>
+
+    const type = () => {
+      if (isCancelled) return
+
+      if (index < text.length) {
+        const nextChar = text.charAt(index)
+        
+        // FIX: Sử dụng phương thức cắt chuỗi tuyệt đối để không bao giờ bị lặp chữ
+        setDisplayedText(text.slice(0, index + 1))
+
+        // FIX SOUND: Clone node giúp âm thanh gõ phím chồng lên nhau mượt mà, không bị nghẹt tiếng
+        if (nextChar !== ' ' && nextChar !== '\n') {
+          const soundClone = typeSound.cloneNode() as HTMLAudioElement
+          soundClone.volume = 0.25
+          soundClone.play().catch(() => {})
+        }
+
+        index++
+        timeoutId = setTimeout(type, 100) // Tốc độ gõ chữ 100ms
+      } else {
+        // Hoàn thành gõ chữ an toàn
+        if (onCompleteRef.current) {
+          onCompleteRef.current()
+        }
       }
+    }
 
-      index++
-      if (index >= text.length) {
-        clearInterval(intervalId)
-        if (onComplete) onComplete()
-      }
-    }, 85) // Tốc độ gõ chữ tương ứng với nhịp âm thanh
+    // Kích hoạt chuỗi gõ chữ sau 200ms khi giao diện ổn định
+    timeoutId = setTimeout(type, 200)
 
-    return () => clearInterval(intervalId)
-  }, [text, onComplete])
+    return () => {
+      isCancelled = true
+      clearTimeout(timeoutId)
+    }
+  }, [text])
 
   return (
     <h2 
@@ -61,24 +81,32 @@ function TypingText({ text, onComplete }: { text: string; onComplete?: () => voi
   )
 }
 
+// ─── NÚT BẤM PHONG THƯ HỒNG PASTEL ────────────────────────────────────
 function ConfessionLetterButton({ onClick }: { onClick: () => void }) {
   return (
     <motion.button
       onClick={onClick}
-      whileHover={{ scale: 1.12 }}
+      whileHover={{ 
+        scale: 1.12,
+        background: 'rgba(255, 200, 220, 0.25)', // Hồng pastel sáng hơn khi đưa chuột vào
+        borderColor: 'rgba(255, 180, 210, 0.6)',
+      }}
       whileTap={{ scale: 0.93 }}
       className="w-10 h-10 flex items-center justify-center rounded-full cursor-pointer select-none text-lg"
       style={{
-        background: 'rgba(255,255,255,0.08)',
+        // Thiết kế kính mờ tone Hồng Pastel nhẹ nhàng hòa hợp với không gian đêm
+        background: 'rgba(255, 192, 203, 0.15)',
         backdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255, 182, 193, 0.35)',
       }}
       animate={{
         y: [0, -6, 0],
         scale: [1, 1.03, 1],
+        // Vòng hào quang phát sáng mờ hồng pastel nhịp nhàng bao quanh nút
         boxShadow: [
-          '0 0 10px hsl(280 60% 60% / 0.1)',
-          '0 0 22px hsl(280 60% 60% / 0.3)',
-          '0 0 10px hsl(280 60% 60% / 0.1)',
+          '0 0 10px 1px rgba(255, 182, 193, 0.2), 0 4px 12px rgba(0,0,0,0.15)',
+          '0 0 22px 4px rgba(255, 182, 193, 0.45), 0 4px 12px rgba(0,0,0,0.15)',
+          '0 0 10px 1px rgba(255, 182, 193, 0.2), 0 4px 12px rgba(0,0,0,0.15)',
         ],
       }}
       transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
@@ -88,28 +116,29 @@ function ConfessionLetterButton({ onClick }: { onClick: () => void }) {
   )
 }
 
+// ─── MODAL ĐIỀU HƯỚNG CHÍNH ───────────────────────────────────────────
 export function ConfessionLetterModal() {
   const [isOpen, setIsOpen] = useState(false)
   const [step, setStep] = useState<'password' | 'letter'>('password')
   const [password, setPassword] = useState('')
   const [isError, setIsError] = useState(false)
   const [showSubText, setShowSubText] = useState(false)
+  
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const hasPlayedAudio = useRef(false) // CHỐNG LẶP NHẠC: Khóa bảo vệ phát nhạc đúng 1 lần
 
   const playConfessionAudio = () => {
+    // Nếu đã phát rồi thì chặn đứng không cho gọi trùng lệnh phát nhạc nữa
+    if (hasPlayedAudio.current) return
+    hasPlayedAudio.current = true
+
     try {
       const a = audioRef.current
       if (a && typeof a.canPlayType === 'function' && a.canPlayType('audio/mpeg')) {
-        try {
-          a.currentTime = 0
-        } catch (_) {
-          /* ignore currentTime set errors */
-        }
+        try { a.currentTime = 0 } catch (_) {}
         a.play().catch((playErr) => {
           console.warn('Confession audio failed to play:', playErr)
         })
-      } else if (a) {
-        console.warn('Confession audio: browser reports canPlayType false for audio/mpeg')
       }
     } catch (err) {
       console.warn('Confession audio error:', err)
@@ -135,10 +164,9 @@ export function ConfessionLetterModal() {
     if (password === '1406') {
       setIsError(false)
       setStep('letter')
-      // notify dashboard to pause (give this confession track priority)
+      
+      // Gửi tín hiệu báo cho sảnh biết để pause nhạc nền sảnh
       try { window.dispatchEvent(new Event('confession:play')) } catch {}
-
-      // audio will play after typing completes (playConfessionAudio)
     } else {
       setIsError(true)
       setPassword('')
@@ -150,15 +178,16 @@ export function ConfessionLetterModal() {
     setIsOpen(false)
     setStep('password')
     setPassword('')
+    setShowSubText(false)
+    hasPlayedAudio.current = false // Reset khóa bảo vệ để có thể mở lại lần sau
+    
     if (audioRef.current) {
       try {
         audioRef.current.pause()
         audioRef.current.currentTime = 0
-      } catch (e) {
-        /* ignore */
-      }
+      } catch (e) {}
     }
-    // notify dashboard to resume
+    // Gửi tín hiệu mở lại nhạc nền sảnh
     try { window.dispatchEvent(new Event('confession:stop')) } catch {}
   }
 
@@ -182,7 +211,6 @@ export function ConfessionLetterModal() {
               onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-sm p-8 text-center rounded-2xl border flex flex-col items-center justify-center"
               style={{
-                // Hộp thoại tone hồng kem mờ ảo hòa quyện vào không gian đêm
                 background: 'rgba(48, 25, 40, 0.82)',
                 borderColor: 'rgba(255, 182, 193, 0.35)',
                 boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255, 182, 193, 0.05)',
@@ -195,7 +223,7 @@ export function ConfessionLetterModal() {
                 <X size={16} />
               </button>
 
-              {/* BƯỚC 1: NHẬP MẬT KHẨU */}
+              {/* BƯỚC 1: XÁC THỰC MẬT KHẨU */}
               {step === 'password' && (
                 <motion.div key="pwd-step" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full">
                   <div 
@@ -220,7 +248,7 @@ export function ConfessionLetterModal() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••"
-                      className="w-full text-center py-2.5 px-4 rounded-xl text-white text-xl tracking-widest focus:outline-none transition-all style-input"
+                      className="w-full text-center py-2.5 px-4 rounded-xl text-white text-xl tracking-widest focus:outline-none transition-all"
                       style={{
                         background: 'rgba(30, 12, 22, 0.4)',
                         border: '1px solid rgba(255, 182, 193, 0.2)',
@@ -255,7 +283,7 @@ export function ConfessionLetterModal() {
                 </motion.div>
               )}
 
-              {/* BƯỚC 2: BÀY TỎ LỜI YÊU THƯƠNG */}
+              {/* BƯỚC 2: HIỂN THỊ LỜI BÀY TỎ LÃNG MẠN */}
               {step === 'letter' && (
                 <motion.div
                   key="letter-step"
@@ -274,14 +302,13 @@ export function ConfessionLetterModal() {
                   </motion.div>
 
                   <TypingText 
-                    text={`" Anh thích em, \n làm bạn gái anh nha!"`} 
+                    text={`"Anh thích em, \n làm bạn gái anh nha!"`} 
                     onComplete={() => {
                       setShowSubText(true)
-                      playConfessionAudio()
+                      playConfessionAudio() // Nhạc phát chuẩn xác duy nhất 1 lần khi kết thúc gõ chữ
                     }} 
                   />
 
-                  {/* Dòng chữ nhỏ mờ ảo mượt mà xuất hiện sau khi tiêu đề gõ xong */}
                   <AnimatePresence>
                     {showSubText && (
                       <motion.p 

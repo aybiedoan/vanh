@@ -392,12 +392,32 @@ useEffect(() => {
     }
     const trackId = tracks[currentIdx % tracks.length].id
     try {
-      playerRef.current.loadVideoById(trackId)
-      // Wait a bit longer for video to load before playing
+      const p: any = playerRef.current
+      if (!p) throw new Error('playerRef missing')
+
+      if (typeof p.loadVideoById === 'function') {
+        p.loadVideoById(trackId)
+      } else if (typeof p.cueVideoById === 'function') {
+        p.cueVideoById(trackId)
+      } else {
+        // fallback: try to set iframe src if available
+        try {
+          const iframe = typeof p.getIframe === 'function' ? p.getIframe() : null
+          if (iframe && 'src' in iframe) {
+            iframe.src = `https://www.youtube.com/embed/${trackId}?enablejsapi=1&autoplay=1`
+          } else {
+            console.warn('YT player missing load/cue methods and iframe not found')
+          }
+        } catch (fbErr) {
+          console.warn('Fallback failed setting iframe src:', fbErr)
+        }
+      }
+
+      // Wait a bit longer for video to load before playing (if playVideo exists)
       const timer = setTimeout(() => {
         try {
-          if (playerRef.current) {
-            playerRef.current.playVideo()
+          if (p && typeof p.playVideo === 'function') {
+            p.playVideo()
           }
         } catch (e) {
           console.warn('Failed to play video:', e)
