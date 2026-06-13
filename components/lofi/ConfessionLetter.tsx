@@ -79,6 +79,26 @@ export function ConfessionLetterModal() {
   const [showSubText, setShowSubText] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
+  const playConfessionAudio = () => {
+    try {
+      const a = audioRef.current
+      if (a && typeof a.canPlayType === 'function' && a.canPlayType('audio/mpeg')) {
+        try {
+          a.currentTime = 0
+        } catch (_) {
+          /* ignore currentTime set errors */
+        }
+        a.play().catch((playErr) => {
+          console.warn('Confession audio failed to play:', playErr)
+        })
+      } else if (a) {
+        console.warn('Confession audio: browser reports canPlayType false for audio/mpeg')
+      }
+    } catch (err) {
+      console.warn('Confession audio error:', err)
+    }
+  }
+
   useEffect(() => {
     audioRef.current = new Audio('https://nkfwybiufcddmxyavcba.supabase.co/storage/v1/object/sign/Aybie/totinh.mp3?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wZDE0MDQ2Yi1kOTUwLTQ1ZjMtYTRjNC1iMjY2MWMxMzVlYTEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJBeWJpZS90b3RpbmgubXAzIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4MTM4NjU3MiwiZXhwIjoxNzgxOTkxMzcyfQ.nXs-lzGPUDAFWE_DkDCS2Px33YcucIUQI2A25QfLMFU')
     if (audioRef.current) {
@@ -255,7 +275,10 @@ export function ConfessionLetterModal() {
 
                   <TypingText 
                     text={`" Anh thích em, \n làm bạn gái anh nha!"`} 
-                    onComplete={() => setShowSubText(true)} 
+                    onComplete={() => {
+                      setShowSubText(true)
+                      playConfessionAudio()
+                    }} 
                   />
 
                   {/* Dòng chữ nhỏ mờ ảo mượt mà xuất hiện sau khi tiêu đề gõ xong */}
