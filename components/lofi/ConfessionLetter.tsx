@@ -4,6 +4,46 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, Heart, X } from 'lucide-react'
 
+function TypingText({ text, onComplete }: { text: string; onComplete?: () => void }) {
+  const [displayedText, setDisplayedText] = useState('')
+
+  useEffect(() => {
+    let index = 0
+    setDisplayedText('') // Reset text ban đầu
+
+    const intervalId = setInterval(() => {
+      setDisplayedText((prev) => prev + text.charAt(index))
+      index++
+      if (index >= text.length) {
+        clearInterval(intervalId)
+        if (onComplete) onComplete() // Gọi hàm hiển thị dòng chữ nhỏ phía dưới khi gõ xong
+      }
+    }, 75) // Tốc độ gõ chữ (75ms mỗi ký tự - vừa vặn để đọc)
+
+    return () => clearInterval(intervalId)
+  }, [text])
+
+  return (
+    <h2 
+      className="text-xl md:text-2xl text-pink-100 font-bold mb-8 leading-relaxed min-h-[64px]" 
+      style={{ 
+        fontFamily: 'var(--font-display)', 
+        textShadow: '0 2px 20px rgba(255, 182, 193, 0.4)', 
+        letterSpacing: '0.01em',
+        whiteSpace: 'pre-line' // Đảm bảo nhận diện dấu xuống dòng \n
+      }}
+    >
+      {displayedText}
+      {/* Con trỏ nhấp nháy tạo cảm giác đang gõ thực tế */}
+      <motion.span
+        animate={{ opacity: [1, 0, 1] }}
+        transition={{ repeat: Infinity, duration: 0.8 }}
+        className="inline-block w-[3px] h-[22px] bg-pink-300 ml-1 translate-y-0.5"
+      />
+    </h2>
+  )
+}
+
 function ConfessionLetterButton({ onClick }: { onClick: () => void }) {
   return (
     <motion.button
@@ -36,6 +76,7 @@ export function ConfessionLetterModal() {
   const [step, setStep] = useState<'password' | 'letter'>('password')
   const [password, setPassword] = useState('')
   const [isError, setIsError] = useState(false)
+  const [showSubText, setShowSubText] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
@@ -212,25 +253,24 @@ export function ConfessionLetterModal() {
                     <Heart size={44} fill="currentColor" style={{ filter: 'drop-shadow(0 0 12px rgba(255, 182, 193, 0.6))' }} />
                   </motion.div>
 
-                  <h2 
-                    className="text-xl md:text-2xl text-pink-100 font-bold mb-8 leading-relaxed" 
-                    style={{ 
-                      fontFamily: 'var(--font-display)', 
-                      textShadow: '0 2px 20px rgba(255, 182, 193, 0.4)', 
-                      letterSpacing: '0.01em' 
-                    }}
-                  >
-                    "Anh thích em, <br /> làm bạn gái anh nha!"
-                  </h2>
+                  <TypingText 
+                    text={`"Anh thích em, \n làm bạn gái anh nha!"`} 
+                    onComplete={() => setShowSubText(true)} 
+                  />
 
-                  <motion.p 
-                    initial={{ opacity: 0, y: 10 }} 
-                    animate={{ opacity: 1, y: 0 }} 
-                    transition={{ delay: 1.5, duration: 0.8 }} 
-                    className="text-xs md:text-sm text-pink-200/70 italic font-medium max-w-[240px] leading-relaxed"
-                  >
-                    Khoan hãy cho anh câu trả lời nhé ☺️
-                  </motion.p>
+                  {/* Dòng chữ nhỏ mờ ảo mượt mà xuất hiện sau khi tiêu đề gõ xong */}
+                  <AnimatePresence>
+                    {showSubText && (
+                      <motion.p 
+                        initial={{ opacity: 0, y: 8 }} 
+                        animate={{ opacity: 1, y: 0 }} 
+                        transition={{ duration: 1 }} 
+                        className="text-xs md:text-sm text-pink-200/70 italic font-medium max-w-[240px] leading-relaxed mt-2"
+                      >
+                        Khoan hãy cho anh câu trả lời nhé ☺️
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               )}
             </motion.div>
