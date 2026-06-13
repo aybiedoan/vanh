@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import CountdownTimer from './CountdownTimer'
 import PlaylistWidget from './PlaylistWidget'
 import EnergyBubble from './EnergyBubble'
+import ConfessionLetterModal from './ConfessionLetter'
 
 const VIDEO_SRC =
   'https://nkfwybiufcddmxyavcba.supabase.co/storage/v1/object/sign/Aybie/watermark_removed_03410037-ab6b-486e-b954-3be71a09dd4e.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wZDE0MDQ2Yi1kOTUwLTQ1ZjMtYTRjNC1iMjY2MWMxMzVlYTEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJBeWJpZS93YXRlcm1hcmtfcmVtb3ZlZF8wMzQxMDAzNy1hYjZiLTQ4NmUtYjk1NC0zYmU3MWEwOWRkNGUubXA0IiwiaWF0IjoxNzgwMzIxMzE1LCJleHAiOjE4NzQ5MjkzMTV9.nhx8_ip_ziR4YtSGEuZUDmwVomyqPVjqbOslVczsTFo'
@@ -64,6 +65,9 @@ export default function Dashboard({ onOpenShowroom }: { onOpenShowroom: () => vo
         // Trên mobile: Đẩy lên cách đáy 270px để nằm gọn gàng ngay phía trên Playlist Widget mà không bị đè.
         className="absolute bottom-[270px] right-4 sm:bottom-8 sm:right-8 z-20 flex flex-col items-end gap-3"
       >
+        {/* Confession Letter (stacked with other action icons) */}
+        <ConfessionLetterModal />
+
         {/* Energy Bubble */}
         <EnergyBubble />
 
@@ -78,6 +82,7 @@ export default function Dashboard({ onOpenShowroom }: { onOpenShowroom: () => vo
         transition={{ delay: 1.5, duration: 1 }}
         className="absolute top-7 right-8 z-20 text-right pointer-events-none"
       />
+      
     </div>
   )
 }
