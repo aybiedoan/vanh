@@ -191,6 +191,7 @@ export default function PlaylistWidget({
   const dragControls = useDragControls()
   const playerRef = useRef<ReturnType<typeof window.YT.Player> | null>(null)
   const wasPlayingRef = useRef(false)
+  const initialAutoBlockedRef = useRef(true)
   const playerContainerRef = useRef<HTMLDivElement>(null)
   const ytApiLoaded = useRef(false)
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -321,8 +322,8 @@ useEffect(() => {
               if (saved) {
                 const savedTracks = JSON.parse(saved) as Track[]
                 if (savedTracks.length > 0) {
+                  // Load first track but do NOT autoplay — user interaction will start playback
                   playerRef.current?.loadVideoById(savedTracks[0].id)
-                  setTimeout(() => playerRef.current?.playVideo(), 200)
                 }
               }
             } catch {}
@@ -384,6 +385,11 @@ useEffect(() => {
   // Load & play track when idx changes
   useEffect(() => {
     if (!playerRef.current || !playerReady || tracks.length === 0) return
+    // Prevent autoplay on initial mount — allow only user-initiated plays afterwards
+    if (initialAutoBlockedRef.current) {
+      initialAutoBlockedRef.current = false
+      return
+    }
     const trackId = tracks[currentIdx % tracks.length].id
     try {
       playerRef.current.loadVideoById(trackId)

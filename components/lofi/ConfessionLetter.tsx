@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, Heart, X } from 'lucide-react'
 
+// ─── COMPONENT HIỆU ỨNG TYPING KÈM ÂM THANH ───────────────────────────
 function TypingText({ text, onComplete }: { text: string; onComplete?: () => void }) {
   const [displayedText, setDisplayedText] = useState('')
 
@@ -11,17 +12,34 @@ function TypingText({ text, onComplete }: { text: string; onComplete?: () => voi
     let index = 0
     setDisplayedText('') // Reset text ban đầu
 
+    // ─── KHỞI TẠO ĐỐI TƯỢNG SOUND EFFECT ──────────────────────────────
+    // Bạn thay link URL này bằng file âm thanh gõ phím của bạn nhé (.mp3 hoặc .wav)
+    const typeSound = new Audio('https://nkfwybiufcddmxyavcba.supabase.co/storage/v1/object/sign/Aybie/typing.mp3?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wZDE0MDQ2Yi1kOTUwLTQ1ZjMtYTRjNC1iMjY2MWMxMzVlYTEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJBeWJpZS90eXBpbmcubXAzIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4MTM5MTE1MiwiZXhwIjoxNzgxOTk1OTUyfQ.ocPDuQ5hrz9jd-FQOpeyo0g-atIJ11YD009Mjak_yO4')
+    typeSound.volume = 0.4 // Điều chỉnh âm lượng vừa phải (từ 0 đến 1)
+
     const intervalId = setInterval(() => {
-      setDisplayedText((prev) => prev + text.charAt(index))
+      const nextChar = text.charAt(index)
+      setDisplayedText((prev) => prev + nextChar)
+      
+      // Phát âm thanh nếu ký tự tiếp theo không phải là khoảng trắng hoặc xuống dòng
+      if (nextChar !== ' ' && nextChar !== '\n') {
+        // Tua nhanh về đầu file âm thanh để tránh bị hụt tiếng khi gõ nhanh
+        typeSound.currentTime = 0 
+        typeSound.play().catch(() => {
+          // Trình duyệt chặn tự động phát âm thanh nếu user chưa tương tác, 
+          // nhưng ở đây user đã click "Mở Thư" nên sound sẽ chạy mượt mà.
+        })
+      }
+
       index++
       if (index >= text.length) {
         clearInterval(intervalId)
-        if (onComplete) onComplete() // Gọi hàm hiển thị dòng chữ nhỏ phía dưới khi gõ xong
+        if (onComplete) onComplete()
       }
-    }, 100) // Tốc độ gõ chữ (100ms mỗi ký tự - vừa vặn để đọc)
+    }, 85) // Tốc độ gõ chữ tương ứng với nhịp âm thanh
 
     return () => clearInterval(intervalId)
-  }, [text])
+  }, [text, onComplete])
 
   return (
     <h2 
@@ -29,12 +47,11 @@ function TypingText({ text, onComplete }: { text: string; onComplete?: () => voi
       style={{ 
         fontFamily: 'var(--font-display)', 
         textShadow: '0 2px 20px rgba(255, 182, 193, 0.4)', 
-        letterSpacing: '0.01em',
-        whiteSpace: 'pre-line' // Đảm bảo nhận diện dấu xuống dòng \n
+        letterSpacing: '0.02em',
+        whiteSpace: 'pre-line'
       }}
     >
       {displayedText}
-      {/* Con trỏ nhấp nháy tạo cảm giác đang gõ thực tế */}
       <motion.span
         animate={{ opacity: [1, 0, 1] }}
         transition={{ repeat: Infinity, duration: 0.8 }}
