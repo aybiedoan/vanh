@@ -21,7 +21,7 @@ function TypingText({ text, onComplete }: { text: string; onComplete?: () => voi
     setDisplayedText('') 
 
     // Khởi tạo đối tượng âm thanh gõ phím mẫu
-    const typeSound = new Audio('https://nkfwybiufcddmxyavcba.supabase.co/storage/v1/object/sign/Aybie/typing.mp3?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wZDE0MDQ2Yi1kOTUwLTQ1ZjMtYTRjNC1iMjY2MWMxMzVlYTEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJBeWJpZS90eXBpbmcubXAzIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4MSM5MTE1MiwiZXhwIjoxNzgxOTk1OTUyfQ.ocPDuQ5hrz9jd-FQOpeyo0g-atIJ11YD009Mjak_yO4')
+    const typeSound = new Audio(asset('/assets/snd/typing.mp3'))
     typeSound.volume = 0.35
     typeSound.preload = 'auto'
 
