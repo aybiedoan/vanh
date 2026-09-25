@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion'
 import { ArrowLeft, X, Play, Volume2, VolumeX } from 'lucide-react'
 import { MEMORIES, GREETING_LINES, getFallbackImage, type MemoryItem } from '@/data/showroom-data'
+import { asset } from '@/lib/asset'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -745,7 +746,7 @@ function StarField({ count, seed }: { count: number; seed: number }) {
 
 // ─── Audio Player Hook ────────────────────────────────────────────────────────
 
-const AMBIENT_MUSIC_URL = 'https://nkfwybiufcddmxyavcba.supabase.co/storage/v1/object/sign/Aybie/music-1.mp3?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wZDE0MDQ2Yi1kOTUwLTQ1ZjMtYTRjNC1iMjY2MWMxMzVlYTEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJBeWJpZS9tdXNpYy0xLm1wMyIsImlhdCI6MTc4MDM1Njg1NywiZXhwIjoxOTA2NTAwODU3fQ.PYL_Cd-4GkYHWz211krkOyx3GmPwOTeLCeTulMuu2YM'
+const AMBIENT_MUSIC_URL = asset('/assets/snd/music.mp3')
 
 function useAmbientMusic() {
   const audioRef = useRef<HTMLAudioElement | null>(null)

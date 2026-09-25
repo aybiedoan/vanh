@@ -6,9 +6,9 @@ import CountdownTimer from './CountdownTimer'
 import PlaylistWidget from './PlaylistWidget'
 import EnergyBubble from './EnergyBubble'
 import ConfessionLetterModal from './ConfessionLetter'
+import { asset } from '@/lib/asset'
 
-const VIDEO_SRC =
-  'https://nkfwybiufcddmxyavcba.supabase.co/storage/v1/object/sign/Aybie/watermark_removed_03410037-ab6b-486e-b954-3be71a09dd4e.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wZDE0MDQ2Yi1kOTUwLTQ1ZjMtYTRjNC1iMjY2MWMxMzVlYTEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJBeWJpZS93YXRlcm1hcmtfcmVtb3ZlZF8wMzQxMDAzNy1hYjZiLTQ4NmUtYjk1NC0zYmU3MWEwOWRkNGUubXA0IiwiaWF0IjoxNzgwMzIxMzE1LCJleHAiOjE4NzQ5MjkzMTV9.nhx8_ip_ziR4YtSGEuZUDmwVomyqPVjqbOslVczsTFo'
+const VIDEO_SRC = asset('/assets/bg/home.mp4')
 
 export default function Dashboard({ onOpenShowroom }: { onOpenShowroom: () => void }) {
   const constraintsRef = useRef<HTMLDivElement>(null)

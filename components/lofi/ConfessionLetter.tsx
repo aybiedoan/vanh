@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, Heart, X } from 'lucide-react'
+import { asset } from '@/lib/asset'
 
 // ─── COMPONENT HIỆU ỨNG TYPING KÈM ÂM THANH CHUẨN XÁC ─────────────────
 function TypingText({ text, onComplete }: { text: string; onComplete?: () => void }) {
@@ -146,7 +147,7 @@ export function ConfessionLetterModal() {
   }
 
   useEffect(() => {
-    audioRef.current = new Audio('https://nkfwybiufcddmxyavcba.supabase.co/storage/v1/object/sign/Aybie/totinh.mp3?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8wZDE0MDQ2Yi1kOTUwLTQ1ZjMtYTRjNC1iMjY2MWMxMzVlYTEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJBeWJpZS90b3RpbmgubXAzIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4MTM4NjU3MiwiZXhwIjoxNzgxOTkxMzcyfQ.nXs-lzGPUDAFWE_DkDCS2Px33YcucIUQI2A25QfLMFU')
+    audioRef.current = new Audio(asset('/assets/snd/totinh.mp3'))
     if (audioRef.current) {
       audioRef.current.loop = false
       audioRef.current.volume = 0.9
