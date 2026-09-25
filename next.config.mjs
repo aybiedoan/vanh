@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',  // Bắt buộc: Xuất ra HTML/CSS/JS tĩnh để host được trên GitHub Pages
-  basePath: '/vanh', // Bắt buộc: Giúp Next.js nhận diện đúng đường dẫn asset trong folder '/vanh'
+  // Chỉ áp basePath khi production (deploy lên GitHub Pages tại /vanh).
+  // Khi dev local, basePath = '' để truy cập http://localhost:3000/ như bình thường.
+  basePath: process.env.NODE_ENV === 'production' ? '/vanh' : '',
 
   typescript: {
     ignoreBuildErrors: true,
