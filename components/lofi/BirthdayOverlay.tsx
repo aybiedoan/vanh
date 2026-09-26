@@ -371,7 +371,7 @@ function Lock3({ onSuccess }: { onSuccess: () => void }) {
     if (correctIdx !== null) return
     if (idx === LOCK_3_CORRECT_INDEX) {
       setCorrectIdx(idx)
-      navigator.vibrate?.(100)
+      navigator.vibrate?.([100, 50, 150])
       setTimeout(onSuccess, 500)
     } else {
       setWrongIdx(idx)
@@ -412,8 +412,17 @@ function Lock3({ onSuccess }: { onSuccess: () => void }) {
                 transition={{ duration: 0.4 }}
                 className="w-full py-3 px-4 rounded-xl text-left cursor-pointer transition-colors"
                 style={{
-                  background: isCorrect ? 'rgba(80,200,120,0.25)' : isWrong ? 'rgba(255,80,80,0.2)' : 'rgba(255,255,255,0.04)',
-                  border: isCorrect ? '1px solid rgba(80,200,120,0.6)' : isWrong ? '1px solid rgba(255,80,80,0.5)' : '1px solid rgba(255,175,220,0.15)',
+                  background: isCorrect
+                    ? 'rgba(255,215,0,0.18)'
+                    : isWrong
+                      ? 'rgba(255,80,80,0.2)'
+                      : 'rgba(255,255,255,0.04)',
+                  border: isCorrect
+                    ? '1px solid rgba(255,215,0,0.85)'
+                    : isWrong
+                      ? '1px solid rgba(255,80,80,0.5)'
+                      : '1px solid rgba(255,175,220,0.15)',
+                  boxShadow: isCorrect ? '0 0 22px rgba(255,215,0,0.55)' : 'none',
                   color: '#ffe3f1',
                   fontFamily: 'var(--font-body)',
                   fontSize: '0.85rem',
@@ -429,18 +438,43 @@ function Lock3({ onSuccess }: { onSuccess: () => void }) {
   )
 }
 
-// ─── Celebration: confetti + auto chuyển sau 3.5s ───────────────────────────
-function Celebration({ onDone }: { onDone: () => void }) {
+// ─── Celebration: timeline 4 giây (burst → reveal → ready) ──────────────────
+function Celebration({ onNext }: { onNext: () => void }) {
+  const [phase, setPhase] = useState<'burst' | 'reveal' | 'ready'>('burst')
+
   useEffect(() => {
     let cancelled = false
     const run = async () => {
       try {
         const confetti = (await import('canvas-confetti')).default
-        const end = Date.now() + 3000
+        // Giây 0–1: burst mạnh giữa màn hình (khoảnh khắc chạm)
+        confetti({
+          particleCount: 140,
+          spread: 100,
+          startVelocity: 45,
+          origin: { x: 0.5, y: 0.55 },
+          colors: ['#ffb6c1', '#ff69b4', '#ffe3f1', '#ffd700', '#fff2b0'],
+        })
+        // Giây 1–3: 2 luồng cannon từ góc dưới chụm vào giữa
+        const end = Date.now() + 2000
         const frame = () => {
           if (cancelled) return
-          confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0, y: 0.9 }, colors: ['#ffb6c1', '#ff69b4', '#ffe3f1', '#ffd700'] })
-          confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1, y: 0.9 }, colors: ['#ffb6c1', '#ff69b4', '#ffe3f1', '#ffd700'] })
+          confetti({
+            particleCount: 5,
+            angle: 60,
+            spread: 60,
+            startVelocity: 55,
+            origin: { x: 0, y: 0.9 },
+            colors: ['#ffb6c1', '#ff69b4', '#ffe3f1', '#ffd700'],
+          })
+          confetti({
+            particleCount: 5,
+            angle: 120,
+            spread: 60,
+            startVelocity: 55,
+            origin: { x: 1, y: 0.9 },
+            colors: ['#ffb6c1', '#ff69b4', '#ffe3f1', '#ffd700'],
+          })
           if (Date.now() < end) requestAnimationFrame(frame)
         }
         frame()
@@ -449,31 +483,101 @@ function Celebration({ onDone }: { onDone: () => void }) {
       }
     }
     run()
-    const t = setTimeout(onDone, 3500)
-    return () => { cancelled = true; clearTimeout(t) }
-  }, [onDone])
+
+    // Timeline
+    const t1 = setTimeout(() => setPhase('reveal'), 2000) // giây 2 → bắt đầu fade chữ + vignette
+    const t2 = setTimeout(() => setPhase('ready'), 4000)  // giây 4 → hiện nút
+    return () => {
+      cancelled = true
+      clearTimeout(t1)
+      clearTimeout(t2)
+    }
+  }, [])
 
   return (
     <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="absolute inset-0 flex items-center justify-center"
     >
+      {/* Vignette tối dần (giây 2 → 4) */}
       <motion.div
-        initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 120, damping: 14 }}
-        className="text-center"
-      >
+        className="absolute inset-0 pointer-events-none"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: phase === 'burst' ? 0 : 0.75 }}
+        transition={{ duration: 2, ease: 'easeInOut' }}
+        style={{
+          background:
+            'radial-gradient(ellipse at 50% 55%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.92) 100%)',
+        }}
+      />
+
+      <div className="relative flex flex-col items-center text-center px-6">
+        {/* Chữ chúc mừng — hiện giây 1, mờ đi giây 2+ */}
         <motion.div
-          animate={{ scale: [1, 1.15, 1], rotate: [0, -8, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 1.6 }}
-          className="text-7xl mb-4"
+          initial={{ scale: 0.4, opacity: 0 }}
+          animate={{
+            scale: phase === 'burst' ? 1 : 0.94,
+            opacity: phase === 'burst' ? 1 : 0,
+          }}
+          transition={{
+            scale: { type: 'spring', stiffness: 200, damping: 14 },
+            opacity: { duration: phase === 'burst' ? 0.5 : 1.4, ease: 'easeInOut' },
+          }}
         >
-          🎉
+          <div className="text-6xl mb-4">🎉</div>
+          <p
+            style={{
+              fontFamily: 'var(--font-display)',
+              color: 'hsl(320 50% 94%)',
+              fontSize: 'clamp(1.15rem, 4.5vw, 1.6rem)',
+              lineHeight: 1.4,
+            }}
+          >
+            TẤT CẢ CÁC KHÓA ĐÃ ĐƯỢC GIẢI MÃ! ✨
+          </p>
+          <p
+            className="mt-2"
+            style={{
+              fontFamily: 'var(--font-body)',
+              color: 'rgba(255,220,235,0.75)',
+              fontSize: '0.85rem',
+              letterSpacing: '0.06em',
+            }}
+          >
+            (3/3 Hoàn thành)
+          </p>
         </motion.div>
-        <p style={{ fontFamily: 'var(--font-display)', color: 'hsl(320 50% 92%)', fontSize: '1.5rem' }}>
-          Chúc mừng sinh nhật!
-        </p>
-      </motion.div>
+
+        {/* Nút Happy Birthday — spotlight (giây 4+) */}
+        {phase === 'ready' && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            onClick={onNext}
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative mt-10 px-8 py-3 rounded-full cursor-pointer select-none"
+            style={{
+              background:
+                'linear-gradient(135deg, rgba(255,182,193,0.85) 0%, rgba(219,112,147,0.85) 100%)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              color: '#fff',
+              fontFamily: 'var(--font-display)',
+              fontSize: '1rem',
+              letterSpacing: '0.04em',
+              touchAction: 'manipulation',
+              // Spotlight: hào quang tỏa ra quanh nút
+              boxShadow:
+                '0 0 40px 8px rgba(255,182,193,0.55), 0 0 90px 24px rgba(255,160,200,0.28)',
+            }}
+          >
+            Happy Birthday 🎂
+          </motion.button>
+        )}
+      </div>
     </motion.div>
   )
 }
@@ -658,12 +762,20 @@ function BirthdayOverlayInner() {
     fade()
   }, [state])
 
-  // Mute hẳn BGM romantic sau khi xong 3 khóa (chuyển CELEBRATION),
-  // để nhường chỗ cho BGM khác phát về sau
+  // CELEBRATION: unmute + fade-in BGM romantic từ 0 → 0.7 trong ~2s
   useEffect(() => {
-    if (state === 'CELEBRATION' && bgmRef.current) {
-      bgmRef.current.muted = true
+    if (state !== 'CELEBRATION' || !bgmRef.current) return
+    const a = bgmRef.current
+    a.muted = false
+    a.volume = 0
+    try { a.play() } catch {}
+    const start = performance.now()
+    const fade = () => {
+      const t = Math.min(1, (performance.now() - start) / 2000)
+      a.volume = 0.7 * t
+      if (t < 1) requestAnimationFrame(fade)
     }
+    fade()
   }, [state])
 
   // Cleanup khi unmount
@@ -740,7 +852,7 @@ function BirthdayOverlayInner() {
               {state === 'LOCK_1' && <Lock1 key="l1" onSuccess={() => setState('LOCK_2')} />}
               {state === 'LOCK_2' && <Lock2 key="l2" onSuccess={() => setState('LOCK_3')} />}
               {state === 'LOCK_3' && <Lock3 key="l3" onSuccess={() => setState('CELEBRATION')} />}
-              {state === 'CELEBRATION' && <Celebration key="cel" onDone={() => setState('CANDLE_VIDEO')} />}
+              {state === 'CELEBRATION' && <Celebration key="cel" onNext={() => setState('CANDLE_VIDEO')} />}
               {state === 'CANDLE_VIDEO' && (
                 <FullscreenVideo key="candle" src={CANDLE_VIDEO_URL} onEnd={() => setState('HPBD_VIDEO')} />
               )}
