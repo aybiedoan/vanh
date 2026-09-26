@@ -47,7 +47,7 @@ export default function TaskList({
   return (
     <div
       className="mt-5 pt-4 border-t xl:mt-0 xl:pt-0 xl:border-t-0"
-      style={{ borderColor: 'rgba(255,175,220,0.12)' }}
+      style={{ borderColor: 'rgba(255, 255, 255, 0.04)' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
@@ -71,9 +71,9 @@ export default function TaskList({
             width: 26,
             height: 26,
             borderRadius: '50%',
-            background: 'rgba(255,175,220,0.10)',
-            border: '1px solid rgba(255,175,220,0.2)',
-            color: 'hsl(320 55% 84%)',
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 200, 220, 0.06)',
+            color: '#ffe3f1',
           }}
           title="Thêm công việc"
         >

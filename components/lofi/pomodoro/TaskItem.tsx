@@ -22,7 +22,7 @@ export default function TaskItem({
     <div
       className="group flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors"
       style={{
-        background: active ? 'rgba(255,175,220,0.06)' : 'transparent',
+        background: active ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
         borderLeft: active
           ? '2px solid hsl(332 80% 70%)'
           : '2px solid transparent',
@@ -41,7 +41,7 @@ export default function TaskItem({
             : 'transparent',
           border: task.isCompleted
             ? '1px solid hsl(332 80% 70%)'
-            : '1px solid rgba(255,175,220,0.35)',
+            : '1px solid rgba(255, 255, 255, 0.22)',
           color: 'hsl(332 90% 92%)',
         }}
         title={task.isCompleted ? 'Đánh dấu chưa xong' : 'Đánh dấu xong'}

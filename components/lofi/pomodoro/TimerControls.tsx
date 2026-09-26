@@ -32,9 +32,9 @@ export default function TimerControls({
           width: 38,
           height: 38,
           borderRadius: '50%',
-          background: 'rgba(55,25,55,0.55)',
-          border: '1px solid rgba(255,175,220,0.18)',
-          color: 'hsl(320 55% 84%)',
+          background: 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(255, 200, 220, 0.06)',
+          color: '#ffe3f1',
         }}
       >
         <RotateCcw size={15} />
@@ -69,9 +69,9 @@ export default function TimerControls({
           width: 38,
           height: 38,
           borderRadius: '50%',
-          background: 'rgba(55,25,55,0.55)',
-          border: '1px solid rgba(255,175,220,0.18)',
-          color: 'hsl(320 55% 84%)',
+          background: 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(255, 200, 220, 0.06)',
+          color: '#ffe3f1',
         }}
       >
         <SkipForward size={15} />

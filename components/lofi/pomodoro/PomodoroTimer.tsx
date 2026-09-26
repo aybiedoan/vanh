@@ -15,14 +15,12 @@ export default function PomodoroTimer() {
 
   return (
     <div
-      className="relative select-none w-[min(92vw,420px)] xl:w-[min(48vw,860px)]"
+      className="relative select-none w-[min(92vw,420px)] xl:w-[min(48vw,860px)] rounded-2xl"
       style={{
-        background: 'rgba(55,25,55,0.28)',
-        backdropFilter: 'blur(18px)',
-        WebkitBackdropFilter: 'blur(18px)',
-        border: '1px solid rgba(255,175,220,0.18)',
-        borderRadius: 22,
-        boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+        background: 'rgba(255, 220, 235, 0.02)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+        border: '1px solid rgba(255, 200, 220, 0.06)',
         padding: '22px 26px',
       }}
     >
@@ -36,9 +34,9 @@ export default function PomodoroTimer() {
           width: 30,
           height: 30,
           borderRadius: '50%',
-          background: 'rgba(55,25,55,0.55)',
-          border: '1px solid rgba(255,175,220,0.18)',
-          color: 'hsl(320 55% 84%)',
+          background: 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(255, 200, 220, 0.06)',
+          color: '#ffe3f1',
         }}
         title="Cài đặt"
       >
