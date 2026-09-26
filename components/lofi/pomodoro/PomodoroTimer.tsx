@@ -15,18 +15,15 @@ export default function PomodoroTimer() {
 
   return (
     <div
-      className="relative select-none"
+      className="relative select-none w-[min(92vw,420px)] xl:w-[min(48vw,860px)]"
       style={{
-        background: 'rgba(55,25,55,0.55)',
+        background: 'rgba(55,25,55,0.28)',
         backdropFilter: 'blur(18px)',
         WebkitBackdropFilter: 'blur(18px)',
         border: '1px solid rgba(255,175,220,0.18)',
         borderRadius: 22,
         boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
         padding: '22px 26px',
-        minWidth: 340,
-        maxWidth: 420,
-        width: 'min(92vw, 420px)',
       }}
     >
       {/* Settings button */}
@@ -50,31 +47,41 @@ export default function PomodoroTimer() {
 
       <ModeTabs mode={p.mode} onSelect={p.setMode} />
 
-      <TimerDisplay
-        mode={p.mode}
-        secondsLeft={p.secondsLeft}
-        pomodoroCount={p.pomodoroCount}
-        longBreakInterval={p.settings.longBreakInterval}
-      />
+      <div className="flex flex-col xl:flex-row">
+        {/* Cột trái: đồng hồ + điều khiển */}
+        <div className="flex flex-col items-center justify-center min-w-0 xl:flex-none xl:w-[250px]">
+          <TimerDisplay
+            mode={p.mode}
+            secondsLeft={p.secondsLeft}
+            pomodoroCount={p.pomodoroCount}
+            longBreakInterval={p.settings.longBreakInterval}
+          />
+          <TimerControls
+            mode={p.mode}
+            status={p.status}
+            onStartPause={p.startOrPause}
+            onReset={p.reset}
+            onSkip={p.skip}
+          />
+        </div>
 
-      <TimerControls
-        mode={p.mode}
-        status={p.status}
-        onStartPause={p.startOrPause}
-        onReset={p.reset}
-        onSkip={p.skip}
-      />
-
-      <TaskList
-        tasks={p.tasks}
-        activeTaskId={p.activeTaskId}
-        onAdd={p.addTask}
-        onToggle={p.toggleTaskDone}
-        onRemove={p.removeTask}
-        onActivate={p.setActiveTask}
-        onUpdateEstimate={p.updateTaskEstimate}
-        stats={p.stats}
-      />
+        {/* Cột phải: công việc */}
+        <div
+          className="min-w-0 xl:flex-1 xl:border-l xl:pl-6"
+          style={{ borderColor: 'rgba(255,175,220,0.12)' }}
+        >
+          <TaskList
+            tasks={p.tasks}
+            activeTaskId={p.activeTaskId}
+            onAdd={p.addTask}
+            onToggle={p.toggleTaskDone}
+            onRemove={p.removeTask}
+            onActivate={p.setActiveTask}
+            onUpdateEstimate={p.updateTaskEstimate}
+            stats={p.stats}
+          />
+        </div>
+      </div>
 
       <SettingsDialog
         open={settingsOpen}

@@ -45,7 +45,10 @@ export default function TaskList({
   }
 
   return (
-    <div className="mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,175,220,0.12)' }}>
+    <div
+      className="mt-5 pt-4 border-t xl:mt-0 xl:pt-0 xl:border-t-0"
+      style={{ borderColor: 'rgba(255,175,220,0.12)' }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <span

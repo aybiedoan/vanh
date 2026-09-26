@@ -64,7 +64,7 @@ export default function TimerDisplay({
     <div className="flex flex-col items-center select-none pointer-events-none">
       {/* Sub-label = tên chế độ */}
       <p
-        className="tracking-widest uppercase mb-6"
+        className="tracking-widest uppercase mb-4"
         style={{
           fontFamily: 'var(--font-body)',
           fontSize: 'clamp(0.85rem, 1.6vw, 1.1rem)',
@@ -85,7 +85,7 @@ export default function TimerDisplay({
                 className="leading-none"
                 style={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: 'clamp(4rem, 9vw, 7rem)',
+                  fontSize: 'clamp(3.5rem, 4.2vw, 3.75rem)',
                   color: hue,
                   textShadow: `0 0 40px hsl(${meta.hue} ${meta.sat}% ${meta.light}% / 0.6)`,
                   lineHeight: 1,
@@ -108,7 +108,7 @@ export default function TimerDisplay({
             </div>
             {i < units.length - 1 && (
               <span
-                className="mb-6 opacity-40 text-4xl leading-none"
+                className="mb-4 opacity-40 text-2xl leading-none"
                 style={{ color: hue, fontFamily: 'var(--font-display)' }}
               >
                 :
