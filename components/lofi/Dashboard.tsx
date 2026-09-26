@@ -40,7 +40,7 @@ export default function Dashboard({ onOpenShowroom }: { onOpenShowroom: () => vo
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2, ease: 'easeOut' }}
         >
-          <PomodoroTimer />
+          <PomodoroTimer containerRef={constraintsRef} />
         </motion.div>
       </div>
 

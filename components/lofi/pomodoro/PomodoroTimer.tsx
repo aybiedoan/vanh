@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { Settings, ChevronDown, ChevronUp, Play, Pause, Timer } from 'lucide-react'
 import { usePomodoro } from '@/hooks/usePomodoro'
 import { MODE_META } from '@/lib/pomodoro/constants'
@@ -11,10 +11,15 @@ import TimerControls from './TimerControls'
 import TaskList from './TaskList'
 import SettingsDialog from './SettingsDialog'
 
-export default function PomodoroTimer() {
+export default function PomodoroTimer({
+  containerRef,
+}: {
+  containerRef?: React.RefObject<HTMLDivElement | null>
+}) {
   const p = usePomodoro()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(true)
+  const dragControls = useDragControls()
 
   const meta = MODE_META[p.mode]
   const mm = Math.floor(p.secondsLeft / 60)
@@ -23,8 +28,15 @@ export default function PomodoroTimer() {
   const isRunning = p.status === 'running'
 
   return (
-    <div
-      className={`relative select-none rounded-2xl transition-all duration-300 ease-out ${
+    <motion.div
+      layout
+      drag
+      dragControls={dragControls}
+      dragListener={false}
+      dragMomentum={false}
+      dragConstraints={containerRef}
+      dragElastic={0}
+      className={`relative select-none rounded-2xl ${
         isCollapsed
           ? 'w-[min(92vw,320px)]'
           : 'w-[min(92vw,420px)] xl:w-[min(48vw,860px)]'
@@ -35,10 +47,14 @@ export default function PomodoroTimer() {
         WebkitBackdropFilter: 'blur(4px)',
         border: '1px solid rgba(255, 200, 220, 0.06)',
         padding: isCollapsed ? '10px 16px' : '22px 26px',
+        touchAction: 'none',
       }}
     >
       {/* Header bar — luôn hiển thị */}
-      <div className="flex items-center justify-between w-full">
+      <div
+        onPointerDown={(e) => dragControls.start(e)}
+        className="flex items-center justify-between w-full cursor-move select-none"
+      >
         <div className="flex items-center gap-2 flex-1 min-w-0 mr-2">
           <Timer size={14} style={{ color: 'hsl(330 100% 92%)', flexShrink: 0 }} />
           <span
@@ -49,7 +65,10 @@ export default function PomodoroTimer() {
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div
+          className="flex items-center gap-1.5 flex-shrink-0"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
           {isCollapsed && (
             <button
               onClick={p.startOrPause}
@@ -137,6 +156,6 @@ export default function PomodoroTimer() {
         settings={p.settings}
         onSave={p.updateSettings}
       />
-    </div>
+    </motion.div>
   )
 }
