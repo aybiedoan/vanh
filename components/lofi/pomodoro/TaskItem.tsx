@@ -112,7 +112,7 @@ export default function TaskItem({
           hover:scale-110 active:scale-95
           text-[#ffe3f1]/70 hover:text-white"
         style={{ width: 22, height: 22 }}
-        title="Xoá công việc"
+        title="Xoá task"
       >
         <Trash2 size={13} />
       </button>

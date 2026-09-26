@@ -60,7 +60,7 @@ export default function TaskList({
             color: 'rgba(255,227,241,0.9)',
           }}
         >
-          Công việc
+          Task List
         </span>
         <motion.button
           whileHover={{ scale: 1.1 }}
@@ -75,7 +75,7 @@ export default function TaskList({
             border: '1px solid rgba(255, 200, 220, 0.06)',
             color: '#ffe3f1',
           }}
-          title="Thêm công việc"
+          title="Thêm task"
         >
           {open ? <X size={13} /> : <Plus size={13} />}
         </motion.button>
@@ -100,7 +100,7 @@ export default function TaskList({
                   if (e.key === 'Enter') submit()
                   if (e.key === 'Escape') setOpen(false)
                 }}
-                placeholder="Tên công việc..."
+                placeholder="Tên task..."
                 className="flex-1 bg-transparent text-xs outline-none placeholder:text-[#ffe3f1]/40"
                 style={{ fontFamily: 'var(--font-body)', color: '#ffe3f1' }}
               />
@@ -153,7 +153,7 @@ export default function TaskList({
               color: 'rgba(255,220,235,0.35)',
             }}
           >
-            Chưa có công việc nào...
+            Chưa có task nào...
           </p>
         )}
         {tasks.map((t) => (

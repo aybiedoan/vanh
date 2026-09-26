@@ -18,10 +18,23 @@ export const LOCK_3_OPTIONS = [
 export const LOCK_3_CORRECT_INDEX = 2 // C — đổi thành 0/1 nếu đáp án đúng là A/B
 
 // ─── Thư ───
-export const LETTER_TEXT = `Gửi em,
+export const LETTER_TEXT = `Hí luuu iuu,
 
 Hôm nay là một ngày đặc biệt...
-(viết nội dung thư ở đây, dùng \\n để xuống dòng)`
+Sinh nhật của em đó!! Woaa!
+Vào ngày này, nhiều, rất nhiều năm về trước...
+Một tồn tại kỳ diệu đã đến với thế giới này,
+Rồi bằng một cách nào đó, từ một em bé suốt ngày khóc nhè...
+Em đã trở thành cô gái ngầu nhất, đỉnh nhất, xinh đẹp nhất và quyến rũ nhất quả đất!
+vậy nên, anh chỉ ở đây để nói với em rằng:
+Thứ nhất: Anh yêu em nhiềuu.
+Thứ hai: Mong em sẽ nhận được trọn vẹn tình yêu thương trên khắp thế giới trong hôm này, và ...
+Thứ ba: Năm nay chắc chắn sẽ là năm tuyệt vời nhất của em!
+Cảm ơn em đã bước đến cuộc đời anh,
+Cảm ơn em vì đã bỏ qua những khuyết điểm của anh,
+Và anh rất hạnh phúc khi được sống trong khoảng thời gian với em,
+Anh muốn sau này mình sẽ có thêm nhiều, nhiều và nhiều kỷ niệm đẹp nữaa
+Anh yêu em nhiều lắmmm!! 😘`
 
 export const FINAL_LINE =
-  'Khóa cuối cùng nằm ở người đối diện. Hãy ngẩng đầu lên...'
+  'Bây giờ hãy ngẩng lên nhìn người đối diện...'
