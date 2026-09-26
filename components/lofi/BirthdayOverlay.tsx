@@ -823,9 +823,6 @@ function StarSkyScene({ onOpenLetter }: { onOpenLetter: () => void }) {
           'radial-gradient(ellipse at 50% 30%, #2a0f3a 0%, #150720 55%, #08030d 100%)',
       }}
     >
-      {/* Chữ Happy Birthday nhiều màu */}
-      <HappyBirthdayTitle />
-
       {/* Sao lấp lánh */}
       <div className="absolute inset-0 pointer-events-none">
         {stars.map((s) => (
