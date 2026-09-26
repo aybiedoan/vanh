@@ -118,7 +118,7 @@ function ConfessionLetterButton({ onClick }: { onClick: () => void }) {
 }
 
 // ─── MODAL ĐIỀU HƯỚNG CHÍNH ───────────────────────────────────────────
-export function ConfessionLetterModal() {
+function ConfessionLetterModalInner() {
   const [isOpen, setIsOpen] = useState(false)
   const [step, setStep] = useState<'password' | 'letter'>('password')
   const [password, setPassword] = useState('')
@@ -330,6 +330,18 @@ export function ConfessionLetterModal() {
       </AnimatePresence>
     </>
   )
+}
+
+// Chỉ hiển thị nút/Modal Confession Letter vào đúng ngày 14/06 hằng năm
+function isConfessionDay(): boolean {
+  const now = new Date()
+  // getMonth() trả về 0-indexed: tháng 6 = 5
+  return now.getMonth() === 5 && now.getDate() === 14
+}
+
+export function ConfessionLetterModal() {
+  if (!isConfessionDay()) return null
+  return <ConfessionLetterModalInner />
 }
 
 export default ConfessionLetterModal
