@@ -463,13 +463,23 @@ function Balloons() {
         <motion.div
           key={b.id}
           initial={{ y: '110vh', opacity: 0 }}
-          animate={{ y: '-20vh', opacity: [0, 1, 1, 0.8] }}
+          animate={{
+            y: '-120vh',
+            opacity: [0, 1, 1, 0],
+          }}
           transition={{
             duration: b.duration,
             delay: b.delay,
             ease: 'easeOut',
             repeat: Infinity,
             repeatDelay: 0.5,
+            opacity: {
+              duration: b.duration,
+              delay: b.delay,
+              times: [0, 0.08, 0.85, 1],
+              repeat: Infinity,
+              repeatDelay: 0.5,
+            },
           }}
           className="absolute"
           style={{ left: `${b.left}%`, bottom: 0 }}
@@ -622,10 +632,12 @@ function Celebration({ onNext }: { onNext: () => void }) {
           <div className="text-6xl mb-4">🎉</div>
           <p
             style={{
-              fontFamily: 'var(--font-display)',
+              fontFamily: 'var(--font-body)',
               color: 'hsl(320 50% 94%)',
               fontSize: 'clamp(1.15rem, 4.5vw, 1.6rem)',
               lineHeight: 1.4,
+              fontWeight: 600,
+              letterSpacing: '0.02em',
             }}
           >
             TẤT CẢ CÁC KHÓA ĐÃ ĐƯỢC GIẢI MÃ! ✨
