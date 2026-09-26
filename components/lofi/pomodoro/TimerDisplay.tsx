@@ -1,101 +1,130 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { MODE_META } from '@/lib/pomodoro/constants'
 import type { PomodoroMode } from '@/lib/pomodoro/types'
 
-const SIZE = 210
-const RADIUS = 96
-const CIRC = 2 * Math.PI * RADIUS
+function OdometerDigit({ value }: { value: string }) {
+  const prev = useRef(value)
+  const changed = prev.current !== value
+  useEffect(() => { prev.current = value })
+  return (
+    <span className="odometer-clip" style={{ width: '0.62em' }}>
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span
+          key={value}
+          initial={changed ? { y: '-100%', opacity: 0 } : false}
+          animate={{ y: '0%', opacity: 1 }}
+          exit={{ y: '100%', opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          style={{ display: 'inline-block' }}
+        >
+          {value}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  )
+}
+
+function OdometerNumber({ value, pad = 2 }: { value: number; pad?: number }) {
+  const str = String(value).padStart(pad, '0')
+  return (
+    <span style={{ display: 'inline-flex' }}>
+      {str.split('').map((ch, i) => <OdometerDigit key={i} value={ch} />)}
+    </span>
+  )
+}
 
 export default function TimerDisplay({
   mode,
   secondsLeft,
-  totalSec,
   pomodoroCount,
   longBreakInterval,
 }: {
   mode: PomodoroMode
   secondsLeft: number
-  totalSec: number
   pomodoroCount: number
   longBreakInterval: number
 }) {
   const meta = MODE_META[mode]
-  const mm = String(Math.floor(secondsLeft / 60)).padStart(2, '0')
-  const ss = String(secondsLeft % 60).padStart(2, '0')
-  const progress = totalSec > 0 ? 1 - secondsLeft / totalSec : 0
-  const offset = CIRC * (1 - progress)
+  const hue = `hsl(${meta.hue} ${meta.sat}% ${meta.light}%)`
 
   const cycleNow =
     pomodoroCount > 0 && pomodoroCount % longBreakInterval === 0
       ? longBreakInterval
       : pomodoroCount % longBreakInterval
 
-  return (
-    <div
-      className="relative flex items-center justify-center mx-auto"
-      style={{ width: SIZE, height: SIZE }}
-    >
-      <svg
-        width={SIZE}
-        height={SIZE}
-        viewBox={`0 0 ${SIZE} ${SIZE}`}
-        className="absolute inset-0 pointer-events-none"
-      >
-        {/* Track */}
-        <circle
-          cx={SIZE / 2}
-          cy={SIZE / 2}
-          r={RADIUS}
-          fill="none"
-          stroke="rgba(255,175,220,0.10)"
-          strokeWidth={3}
-        />
-        {/* Progress */}
-        <circle
-          cx={SIZE / 2}
-          cy={SIZE / 2}
-          r={RADIUS}
-          fill="none"
-          stroke={`hsl(${meta.hue} ${meta.sat}% ${meta.light}%)`}
-          strokeWidth={3}
-          strokeLinecap="round"
-          strokeDasharray={CIRC}
-          strokeDashoffset={offset}
-          transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
-          style={{
-            transition: 'stroke-dashoffset 0.3s linear, stroke 0.4s ease',
-            filter: `drop-shadow(0 0 6px hsl(${meta.hue} ${meta.sat}% ${meta.light}% / 0.6))`,
-          }}
-        />
-      </svg>
+  const units = [
+    { value: Math.floor(secondsLeft / 60), label: 'phút' },
+    { value: secondsLeft % 60, label: 'giây' },
+  ]
 
-      <div className="relative flex flex-col items-center justify-center z-10">
-        <span
-          className="leading-none tabular-nums"
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(2.6rem, 8vw, 3.6rem)',
-            color: `hsl(${meta.hue} ${meta.sat}% ${meta.light}%)`,
-            textShadow: `0 0 28px hsl(${meta.hue} ${meta.sat}% ${meta.light}% / 0.55)`,
-            lineHeight: 1,
-            letterSpacing: '0.02em',
-          }}
-        >
-          {mm}:{ss}
-        </span>
-        <span
-          className="mt-2"
-          style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.72rem',
-            letterSpacing: '0.14em',
-            color: 'rgba(255,220,235,0.5)',
-          }}
-        >
-          Chu kỳ {cycleNow}/{longBreakInterval}
-        </span>
+  return (
+    <div className="flex flex-col items-center select-none pointer-events-none">
+      {/* Sub-label = tên chế độ */}
+      <p
+        className="tracking-widest uppercase mb-6"
+        style={{
+          fontFamily: 'var(--font-body)',
+          fontSize: 'clamp(0.85rem, 1.6vw, 1.1rem)',
+          letterSpacing: '0.22em',
+          color: hue,
+          textShadow: `0 0 24px hsl(${meta.hue} ${meta.sat}% ${meta.light}% / 0.7)`,
+        }}
+      >
+        {meta.label}
+      </p>
+
+      {/* Numbers */}
+      <div className="flex items-end gap-2 md:gap-4">
+        {units.map((u, i) => (
+          <div key={u.label} className="flex items-end gap-2 md:gap-4">
+            <div className="flex flex-col items-center">
+              <span
+                className="leading-none"
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'clamp(4rem, 9vw, 7rem)',
+                  color: hue,
+                  textShadow: `0 0 40px hsl(${meta.hue} ${meta.sat}% ${meta.light}% / 0.6)`,
+                  lineHeight: 1,
+                }}
+              >
+                <OdometerNumber value={u.value} pad={2} />
+              </span>
+              <span
+                className="mt-2 tracking-widest uppercase"
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 'clamp(0.65rem, 1.1vw, 0.8rem)',
+                  letterSpacing: '0.18em',
+                  color: hue,
+                  opacity: 0.9,
+                }}
+              >
+                {u.label}
+              </span>
+            </div>
+            {i < units.length - 1 && (
+              <span
+                className="mb-6 opacity-40 text-4xl leading-none"
+                style={{ color: hue, fontFamily: 'var(--font-display)' }}
+              >
+                :
+              </span>
+            )}
+          </div>
+        ))}
       </div>
+
+      {/* Chu kỳ (vị trí tagline) */}
+      <p
+        className="mt-6 text-sm italic text-center"
+        style={{ fontFamily: 'var(--font-body)', color: hue, opacity: 0.8 }}
+      >
+        Chu kỳ {cycleNow}/{longBreakInterval}
+      </p>
     </div>
   )
 }

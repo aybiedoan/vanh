@@ -53,7 +53,6 @@ export default function PomodoroTimer() {
       <TimerDisplay
         mode={p.mode}
         secondsLeft={p.secondsLeft}
-        totalSec={p.totalSec}
         pomodoroCount={p.pomodoroCount}
         longBreakInterval={p.settings.longBreakInterval}
       />
