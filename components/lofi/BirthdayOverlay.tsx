@@ -28,12 +28,14 @@ type BirthdayState =
   | 'LOCK_1' | 'LOCK_2' | 'LOCK_3'
   | 'CELEBRATION'
   | 'CANDLE_VIDEO' | 'HPBD_VIDEO'
+  | 'STAR_SKY'
   | 'LETTER_SEAL' | 'LETTER_READING' | 'OUTRO'
 
 const BGM_URL = asset('/assets/birthday/romantic-bgm.mp3')
 const VIDEO_URL = asset('/assets/birthday/intro-bunny.mp4')
 const CANDLE_VIDEO_URL = asset('/assets/birthday/candle.mp4')
 const HPBD_VIDEO_URL = asset('/assets/birthday/hpbd.mp4')
+const BD_BGM_URL = asset('/assets/birthday/bd-bgm.mp3')
 
 // ─── Thanh tiến trình 1/3, 2/3, 3/3 ─────────────────────────────────────────
 function LockProgress({ current }: { current: 1 | 2 | 3 }) {
@@ -687,6 +689,178 @@ function Celebration({ onNext }: { onNext: () => void }) {
   )
 }
 
+// ─── StarSkyScene: bầu trời sao lặp + bong bóng + pháo hoa + nút mở thư ─────
+function StarSkyScene({ onOpenLetter }: { onOpenLetter: () => void }) {
+  // Sinh sao 1 lần, giữ nguyên qua re-render
+  const stars = useMemo(
+    () =>
+      Array.from({ length: 90 }, (_, i) => ({
+        id: i,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: 0.6 + Math.random() * 2.2,
+        opacity: 0.25 + Math.random() * 0.55,
+        twinkleDelay: Math.random() * 3,
+        twinkleDur: 2 + Math.random() * 2.5,
+      })),
+    []
+  )
+
+  // Bong bóng nhỏ trôi lên
+  const bubbles = useMemo(
+    () =>
+      Array.from({ length: 18 }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        size: 8 + Math.random() * 22,
+        delay: Math.random() * 4,
+        duration: 6 + Math.random() * 5,
+        hue: [330, 300, 200, 45][i % 4],
+      })),
+    []
+  )
+
+  // Pháo hoa định kỳ
+  useEffect(() => {
+    let cancelled = false
+    let intervalId: ReturnType<typeof setInterval> | null = null
+
+    const run = async () => {
+      try {
+        const confetti = (await import('canvas-confetti')).default
+        const burst = () => {
+          if (cancelled) return
+          confetti({
+            particleCount: 60,
+            spread: 360,
+            startVelocity: 28,
+            ticks: 100,
+            gravity: 0.85,
+            origin: {
+              x: 0.15 + Math.random() * 0.7,
+              y: 0.15 + Math.random() * 0.35,
+            },
+            colors: ['#ffb6c1', '#ff69b4', '#ffe3f1', '#ffd700', '#c084fc', '#a6e3a1'],
+          })
+        }
+        burst()
+        intervalId = setInterval(burst, 2200)
+      } catch (e) {
+        console.warn('StarSky confetti failed:', e)
+      }
+    }
+    run()
+
+    return () => {
+      cancelled = true
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      transition={{ duration: 0.8 }}
+      className="absolute inset-0 overflow-hidden"
+      style={{
+        background:
+          'radial-gradient(ellipse at 50% 30%, #2a0f3a 0%, #150720 55%, #08030d 100%)',
+      }}
+    >
+      {/* Sao lấp lánh */}
+      <div className="absolute inset-0 pointer-events-none">
+        {stars.map((s) => (
+          <motion.div
+            key={s.id}
+            className="absolute rounded-full"
+            style={{
+              left: `${s.x}%`,
+              top: `${s.y}%`,
+              width: s.size,
+              height: s.size,
+              background: 'rgba(240, 220, 255, 0.95)',
+              boxShadow: '0 0 4px rgba(255, 200, 240, 0.6)',
+            }}
+            animate={{ opacity: [s.opacity * 0.4, s.opacity, s.opacity * 0.4] }}
+            transition={{
+              duration: s.twinkleDur,
+              delay: s.twinkleDelay,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Bong bóng trôi lên */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {bubbles.map((b) => (
+          <motion.div
+            key={b.id}
+            className="absolute rounded-full"
+            style={{
+              left: `${b.left}%`,
+              bottom: -40,
+              width: b.size,
+              height: b.size,
+              background: `radial-gradient(circle at 35% 30%, hsla(${b.hue}, 90%, 88%, 0.55), hsla(${b.hue}, 80%, 70%, 0.15))`,
+              border: `1px solid hsla(${b.hue}, 90%, 85%, 0.35)`,
+              boxShadow: `0 0 12px hsla(${b.hue}, 80%, 75%, 0.35)`,
+            }}
+            initial={{ y: 0, opacity: 0 }}
+            animate={{
+              y: '-115vh',
+              x: [0, (Math.random() - 0.5) * 40, 0],
+              opacity: [0, 0.9, 0.9, 0],
+            }}
+            transition={{
+              duration: b.duration,
+              delay: b.delay,
+              ease: 'easeOut',
+              repeat: Infinity,
+              repeatDelay: 0.4,
+              opacity: {
+                duration: b.duration,
+                delay: b.delay,
+                times: [0, 0.1, 0.85, 1],
+                repeat: Infinity,
+                repeatDelay: 0.4,
+              },
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Nút mở thư */}
+      <div className="absolute inset-0 flex items-center justify-center px-6">
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2, duration: 0.8 }}
+          onClick={onOpenLetter}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="relative px-8 py-3 rounded-full cursor-pointer select-none"
+          style={{
+            background:
+              'linear-gradient(135deg, rgba(255,182,193,0.85) 0%, rgba(219,112,147,0.85) 100%)',
+            border: '1px solid rgba(255,255,255,0.25)',
+            color: '#fff',
+            fontFamily: 'var(--font-body)',
+            fontSize: '0.95rem',
+            letterSpacing: '0.04em',
+            touchAction: 'manipulation',
+            boxShadow:
+              '0 0 40px 8px rgba(255,182,193,0.5), 0 0 90px 24px rgba(255,160,200,0.25)',
+          }}
+        >
+          Có một lá thư ở sau đó 💌
+        </motion.button>
+      </div>
+    </motion.div>
+  )
+}
+
 // ─── LetterSeal: phong bì + con dấu sáp ─────────────────────────────────────
 function LetterSeal({ onOpen }: { onOpen: () => void }) {
   const [opening, setOpening] = useState(false)
@@ -886,6 +1060,25 @@ function BirthdayOverlayInner() {
     fade()
   }, [state])
 
+  // Phát bd-bgm.mp3 khi vào STAR_SKY (sau khi 2 video kết thúc)
+  useEffect(() => {
+    if (state !== 'STAR_SKY') return
+    const a = new Audio(BD_BGM_URL)
+    a.loop = true
+    a.volume = 0
+    a.play().catch(() => {})
+    const start = performance.now()
+    const fade = () => {
+      const t = Math.min(1, (performance.now() - start) / 2000)
+      a.volume = 0.7 * t
+      if (t < 1) requestAnimationFrame(fade)
+    }
+    fade()
+    return () => {
+      try { a.pause() } catch {}
+    }
+  }, [state])
+
   // Cleanup khi unmount
   useEffect(() => {
     return () => {
@@ -965,7 +1158,10 @@ function BirthdayOverlayInner() {
                 <FullscreenVideo key="candle" src={CANDLE_VIDEO_URL} onEnd={() => setState('HPBD_VIDEO')} />
               )}
               {state === 'HPBD_VIDEO' && (
-                <FullscreenVideo key="hpbd" src={HPBD_VIDEO_URL} onEnd={() => setState('LETTER_SEAL')} />
+                <FullscreenVideo key="hpbd" src={HPBD_VIDEO_URL} onEnd={() => setState('STAR_SKY')} />
+              )}
+              {state === 'STAR_SKY' && (
+                <StarSkyScene key="starsky" onOpenLetter={() => setState('LETTER_SEAL')} />
               )}
               {state === 'LETTER_SEAL' && <LetterSeal key="seal" onOpen={() => setState('LETTER_READING')} />}
               {state === 'LETTER_READING' && <LetterReading key="read" onDone={() => setState('OUTRO')} />}
