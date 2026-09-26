@@ -26,10 +26,14 @@ function isBirthdayDay(): boolean {
 type BirthdayState =
   | 'IDLE' | 'PASSWORD' | 'INTRO_VIDEO'
   | 'LOCK_1' | 'LOCK_2' | 'LOCK_3'
-  | 'CELEBRATION' | 'LETTER_SEAL' | 'LETTER_READING' | 'OUTRO'
+  | 'CELEBRATION'
+  | 'CANDLE_VIDEO' | 'HPBD_VIDEO'
+  | 'LETTER_SEAL' | 'LETTER_READING' | 'OUTRO'
 
 const BGM_URL = asset('/assets/birthday/romantic-bgm.mp3')
 const VIDEO_URL = asset('/assets/birthday/intro-bunny.mp4')
+const CANDLE_VIDEO_URL = asset('/assets/birthday/candle.mp4')
+const HPBD_VIDEO_URL = asset('/assets/birthday/hpbd.mp4')
 
 // ─── Thanh tiến trình 1/3, 2/3, 3/3 ─────────────────────────────────────────
 function LockProgress({ current }: { current: 1 | 2 | 3 }) {
@@ -145,8 +149,8 @@ function PasswordGate({ onSuccess }: { onSuccess: () => void }) {
   )
 }
 
-// ─── Video thỏ toàn màn hình ────────────────────────────────────────────────
-function IntroVideo({ onEnd }: { onEnd: () => void }) {
+// ─── Video toàn màn hình (tái sử dụng cho intro / candle / hpbd) ────────────
+function FullscreenVideo({ src, onEnd }: { src: string; onEnd: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -165,7 +169,7 @@ function IntroVideo({ onEnd }: { onEnd: () => void }) {
     >
       <video
         ref={videoRef}
-        src={VIDEO_URL}
+        src={src}
         playsInline
         preload="auto"
         onEnded={onEnd}
@@ -721,11 +725,19 @@ function BirthdayOverlayInner() {
 
             <AnimatePresence mode="wait">
               {state === 'PASSWORD' && <PasswordGate key="pwd" onSuccess={handlePasswordSuccess} />}
-              {state === 'INTRO_VIDEO' && <IntroVideo key="intro" onEnd={() => setState('LOCK_1')} />}
+              {state === 'INTRO_VIDEO' && (
+                <FullscreenVideo key="intro" src={VIDEO_URL} onEnd={() => setState('LOCK_1')} />
+              )}
               {state === 'LOCK_1' && <Lock1 key="l1" onSuccess={() => setState('LOCK_2')} />}
               {state === 'LOCK_2' && <Lock2 key="l2" onSuccess={() => setState('LOCK_3')} />}
               {state === 'LOCK_3' && <Lock3 key="l3" onSuccess={() => setState('CELEBRATION')} />}
-              {state === 'CELEBRATION' && <Celebration key="cel" onDone={() => setState('LETTER_SEAL')} />}
+              {state === 'CELEBRATION' && <Celebration key="cel" onDone={() => setState('CANDLE_VIDEO')} />}
+              {state === 'CANDLE_VIDEO' && (
+                <FullscreenVideo key="candle" src={CANDLE_VIDEO_URL} onEnd={() => setState('HPBD_VIDEO')} />
+              )}
+              {state === 'HPBD_VIDEO' && (
+                <FullscreenVideo key="hpbd" src={HPBD_VIDEO_URL} onEnd={() => setState('LETTER_SEAL')} />
+              )}
               {state === 'LETTER_SEAL' && <LetterSeal key="seal" onOpen={() => setState('LETTER_READING')} />}
               {state === 'LETTER_READING' && <LetterReading key="read" onDone={() => setState('OUTRO')} />}
               {state === 'OUTRO' && (
