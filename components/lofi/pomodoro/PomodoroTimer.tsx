@@ -47,7 +47,7 @@ export default function PomodoroTimer() {
 
       <div className="flex flex-col xl:flex-row">
         {/* Cột trái: đồng hồ + điều khiển */}
-        <div className="flex flex-col items-center justify-center min-w-0 xl:flex-none xl:w-[250px]">
+        <div className="flex flex-col items-center justify-center min-w-0 xl:flex-none xl:w-[270px]">
           <TimerDisplay
             mode={p.mode}
             secondsLeft={p.secondsLeft}

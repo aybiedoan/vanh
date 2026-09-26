@@ -48,6 +48,9 @@ export default function TimerControls({
         style={{
           padding: '10px 28px',
           borderRadius: 40,
+          justifyContent: 'center',
+          minWidth: 150,
+          flexShrink: 0,
           background: `hsl(${meta.hue} ${meta.sat}% ${meta.light}% / 0.22)`,
           border: `1px solid hsl(${meta.hue} ${meta.sat}% ${meta.light}% / 0.5)`,
           color: hue,
@@ -58,7 +61,7 @@ export default function TimerControls({
         }}
       >
         {isRunning ? <Pause size={15} /> : <Play size={15} />}
-        <span>{isRunning ? 'Tạm dừng' : 'Bắt đầu'}</span>
+        <span className="whitespace-nowrap">{isRunning ? 'Tạm dừng' : 'Bắt đầu'}</span>
       </motion.button>
 
       <button
