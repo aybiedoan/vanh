@@ -705,7 +705,7 @@ function HappyBirthdayTitle() {
       initial={{ opacity: 0, scale: 0.8, y: -20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ delay: 0.4, type: 'spring', stiffness: 120, damping: 14 }}
-      className="w-full text-center px-4 select-none pointer-events-none flex-shrink-0"
+      className="w-full text-center px-4 select-none pointer-events-none flex-shrink-0 mt-[9vh]"
       style={{
         fontFamily: 'var(--font-body)',
         fontSize: 'clamp(1.6rem, 7vw, 3rem)',
