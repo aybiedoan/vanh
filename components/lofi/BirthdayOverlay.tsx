@@ -36,6 +36,7 @@ const VIDEO_URL = asset('/assets/birthday/intro-bunny.mp4')
 const CANDLE_VIDEO_URL = asset('/assets/birthday/candle.mp4')
 const HPBD_VIDEO_URL = asset('/assets/birthday/hpbd.mp4')
 const BD_BGM_URL = asset('/assets/birthday/bd-bgm.mp3')
+const MEMORY_46_URL = asset('/assets/img/memory-46.webp')
 
 // ─── Thanh tiến trình 1/3, 2/3, 3/3 ─────────────────────────────────────────
 function LockProgress({ current }: { current: 1 | 2 | 3 }) {
@@ -831,8 +832,47 @@ function StarSkyScene({ onOpenLetter }: { onOpenLetter: () => void }) {
         ))}
       </div>
 
-      {/* Nút mở thư */}
-      <div className="absolute inset-0 flex items-center justify-center px-6">
+      {/* Ảnh kỷ niệm memory-46 */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.85, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 1, ease: 'easeOut' }}
+        className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+        style={{
+          width: 'clamp(180px, 55vw, 280px)',
+          height: 'auto',
+          borderRadius: 16,
+          overflow: 'hidden',
+          border: '1px solid rgba(255,175,220,0.35)',
+          boxShadow: '0 0 40px rgba(255,160,210,0.35), 0 20px 60px rgba(0,0,0,0.5)',
+          transform: 'rotate(-3deg)',
+        }}
+      >
+        <motion.img
+          src={MEMORY_46_URL}
+          alt="Kỷ niệm"
+          animate={{
+            y: [0, -6, 0],
+            boxShadow: [
+              '0 0 30px rgba(255,160,210,0.3)',
+              '0 0 50px rgba(255,160,210,0.55)',
+              '0 0 30px rgba(255,160,210,0.3)',
+            ],
+          }}
+          transition={{
+            y: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
+            boxShadow: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
+          }}
+          style={{
+            width: '100%',
+            height: 'auto',
+            display: 'block',
+          }}
+        />
+      </motion.div>
+
+      {/* Nút mở thư — nằm dưới ảnh */}
+      <div className="absolute inset-0 flex items-end justify-center pb-[12vh] px-6">
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -986,6 +1026,7 @@ function BirthdayOverlayInner() {
   const [state, setState] = useState<BirthdayState>('IDLE')
   const [isOpen, setIsOpen] = useState(false)
   const bgmRef = useRef<HTMLAudioElement | null>(null)
+  const bdBgmRef = useRef<HTMLAudioElement | null>(null) // ← THÊM
   const bgmStartedRef = useRef(false) // guard: BGM chỉ fade-in 1 lần / session
 
   const handleOpen = useCallback(() => {
@@ -1015,6 +1056,12 @@ function BirthdayOverlayInner() {
       bgmRef.current.pause()
       bgmRef.current.currentTime = 0
       bgmRef.current.muted = false // ← reset để lần sau BGM phát lại được
+    }
+    // ← THÊM: dừng bd-bgm khi đóng overlay
+    if (bdBgmRef.current) {
+      bdBgmRef.current.pause()
+      bdBgmRef.current.currentTime = 0
+      bdBgmRef.current = null
     }
     bgmStartedRef.current = false // ← reset guard để lần mở sau BGM phát lại từ đầu
     try { window.dispatchEvent(new Event('confession:stop')) } catch {}
@@ -1060,13 +1107,16 @@ function BirthdayOverlayInner() {
     fade()
   }, [state])
 
-  // Phát bd-bgm.mp3 khi vào STAR_SKY (sau khi 2 video kết thúc)
+  // Phát bd-bgm.mp3 khi vào STAR_SKY — phát đến cuối, không dừng khi rời state
   useEffect(() => {
-    if (state !== 'STAR_SKY') return
+    if (state !== 'STAR_SKY' || bdBgmRef.current) return
+
     const a = new Audio(BD_BGM_URL)
     a.loop = true
     a.volume = 0
     a.play().catch(() => {})
+    bdBgmRef.current = a
+
     const start = performance.now()
     const fade = () => {
       const t = Math.min(1, (performance.now() - start) / 2000)
@@ -1074,9 +1124,7 @@ function BirthdayOverlayInner() {
       if (t < 1) requestAnimationFrame(fade)
     }
     fade()
-    return () => {
-      try { a.pause() } catch {}
-    }
+    // ← KHÔNG có cleanup pause — nhạc chạy tiếp qua LETTER_SEAL, LETTER_READING, OUTRO
   }, [state])
 
   // Cleanup khi unmount
@@ -1085,6 +1133,11 @@ function BirthdayOverlayInner() {
       if (bgmRef.current) {
         bgmRef.current.pause()
         bgmRef.current = null
+      }
+      // ← THÊM
+      if (bdBgmRef.current) {
+        bdBgmRef.current.pause()
+        bdBgmRef.current = null
       }
     }
   }, [])
