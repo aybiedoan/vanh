@@ -100,7 +100,6 @@ export default function TimerDisplay({
                   fontSize: 'clamp(0.65rem, 1.1vw, 0.8rem)',
                   letterSpacing: '0.18em',
                   color: hue,
-                  opacity: 0.9,
                 }}
               >
                 {u.label}
@@ -121,7 +120,7 @@ export default function TimerDisplay({
       {/* Chu kỳ (vị trí tagline) */}
       <p
         className="mt-6 text-sm italic text-center"
-        style={{ fontFamily: 'var(--font-body)', color: hue, opacity: 0.8 }}
+        style={{ fontFamily: 'var(--font-body)', color: hue, opacity: 0.95 }}
       >
         Chu kỳ {cycleNow}/{longBreakInterval}
       </p>

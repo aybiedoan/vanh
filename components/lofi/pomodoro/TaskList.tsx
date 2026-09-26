@@ -57,7 +57,7 @@ export default function TaskList({
             fontFamily: 'var(--font-body)',
             fontSize: '0.7rem',
             letterSpacing: '0.18em',
-            color: 'rgba(255,220,235,0.6)',
+            color: 'rgba(255,227,241,0.9)',
           }}
         >
           Công việc
@@ -176,7 +176,7 @@ export default function TaskList({
           style={{
             fontFamily: 'var(--font-body)',
             fontSize: '0.72rem',
-            color: 'rgba(255,220,235,0.55)',
+            color: 'rgba(255,227,241,0.85)',
           }}
         >
           Còn lại: {stats.totalRemaining} pomo · Xong lúc: {formatHHMM(stats.finishAt)}

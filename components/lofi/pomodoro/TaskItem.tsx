@@ -61,7 +61,7 @@ export default function TaskItem({
             fontSize: '0.82rem',
             color: task.isCompleted
               ? 'rgba(255,220,235,0.4)'
-              : 'rgba(255,220,235,0.9)',
+              : '#ffe3f1',
             textDecoration: task.isCompleted ? 'line-through' : 'none',
           }}
         >
@@ -89,7 +89,7 @@ export default function TaskItem({
             fontSize: '0.68rem',
             background: 'rgba(255,175,220,0.10)',
             border: '1px solid rgba(255,175,220,0.18)',
-            color: 'rgba(255,220,235,0.75)',
+            color: '#ffe3f1',
           }}
         >
           {task.actPomodoros}/{task.estPomodoros}
