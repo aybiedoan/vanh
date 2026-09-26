@@ -1027,7 +1027,7 @@ function LetterReading({ onDone }: { onDone: () => void }) {
       } else {
         clearInterval(iv)
         setTimeout(() => setShowFinal(true), 800)
-        setTimeout(onDone, 4000)
+        setTimeout(onDone, 8000)
       }
     }, 45)
     return () => clearInterval(iv)
