@@ -11,8 +11,20 @@ import {
   LETTER_TEXT, FINAL_LINE,
 } from '@/lib/birthday/constants'
 
+// Chỉ hiển thị icon vào đúng ngày 26/09/2026 theo giờ Việt Nam (GMT+7)
+function isBirthdayDay(): boolean {
+  const now = new Date()
+  // Shift sang giờ VN rồi đọc bằng getUTC* để tránh lệ thuộc timezone máy
+  const vn = new Date(now.getTime() + 7 * 60 * 60 * 1000)
+  return (
+    vn.getUTCFullYear() === 2026 &&
+    vn.getUTCMonth() === 8 && // tháng 9 (0-indexed)
+    vn.getUTCDate() === 26
+  )
+}
+
 type BirthdayState =
-  | 'IDLE' | 'INTRO_VIDEO'
+  | 'IDLE' | 'PASSWORD' | 'INTRO_VIDEO'
   | 'LOCK_1' | 'LOCK_2' | 'LOCK_3'
   | 'CELEBRATION' | 'LETTER_SEAL' | 'LETTER_READING' | 'OUTRO'
 
@@ -39,6 +51,97 @@ function LockProgress({ current }: { current: 1 | 2 | 3 }) {
         </div>
       ))}
     </div>
+  )
+}
+
+// ─── PasswordGate: nhập mật khẩu mở quà ─────────────────────────────────────
+function PasswordGate({ onSuccess }: { onSuccess: () => void }) {
+  const [value, setValue] = useState('')
+  const [error, setError] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { inputRef.current?.focus() }, [])
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (value === '2609') {
+      navigator.vibrate?.(100)
+      onSuccess()
+    } else {
+      setError(true)
+      navigator.vibrate?.(200)
+      setValue('')
+      setTimeout(() => setError(false), 600)
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+      className="absolute inset-0 flex items-center justify-center p-4"
+    >
+      <motion.div
+        animate={error ? { x: [-8, 8, -8, 8, 0] } : {}}
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-sm p-6 rounded-2xl text-center"
+        style={{
+          background: 'rgba(45,20,48,0.92)',
+          backdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255,175,220,0.22)',
+        }}
+      >
+        <div
+          className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4"
+          style={{
+            background: 'rgba(255,182,193,0.08)',
+            border: '1px solid rgba(255,182,193,0.25)',
+            color: '#ffb6c1',
+          }}
+        >
+          <Heart size={18} />
+        </div>
+        <h3 className="mb-1" style={{ fontFamily: 'var(--font-display)', color: 'hsl(320 50% 92%)', fontSize: '1.2rem' }}>
+          Mã khóa bí mật
+        </h3>
+        <p className="text-xs mb-5" style={{ color: 'rgba(255,220,235,0.6)' }}>
+          Nhập mật khẩu để mở món quà nhé...
+        </p>
+        <form onSubmit={submit}>
+          <input
+            ref={inputRef}
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="••••"
+            className="w-full text-center py-2.5 px-4 rounded-xl text-white text-xl tracking-widest outline-none mb-4"
+            style={{
+              background: 'rgba(30,12,22,0.55)',
+              border: '1px solid rgba(255,182,193,0.22)',
+              fontFamily: 'var(--font-display)',
+            }}
+          />
+          <button
+            type="submit"
+            className="w-full py-2.5 rounded-xl cursor-pointer"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255,182,193,0.6) 0%, rgba(219,112,147,0.6) 100%)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              color: '#fff',
+              fontFamily: 'var(--font-body)',
+            }}
+          >
+            Mở quà
+          </button>
+        </form>
+        {error && (
+          <p className="text-xs mt-3" style={{ color: 'rgba(255,120,120,0.9)' }}>
+            Hình như chưa đúng rồi... 🤫
+          </p>
+        )}
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -492,22 +595,26 @@ function LetterReading({ onDone }: { onDone: () => void }) {
 }
 
 // ─── Main component: FSM + audio + cleanup ──────────────────────────────────
-export default function BirthdayOverlay() {
+function BirthdayOverlayInner() {
   const [state, setState] = useState<BirthdayState>('IDLE')
   const [isOpen, setIsOpen] = useState(false)
   const bgmRef = useRef<HTMLAudioElement | null>(null)
 
   const handleOpen = useCallback(() => {
-    // 1. Pause playlist hiện tại (tái dùng event có sẵn trong PlaylistWidget)
+    setIsOpen(true)
+    setState('PASSWORD')
+  }, [])
+
+  const handlePasswordSuccess = useCallback(() => {
+    // 1. Tắt nhạc PlaylistWidget (event đã có sẵn trong PlaylistWidget)
     try { window.dispatchEvent(new Event('confession:play')) } catch {}
-    // 2. Preload BGM ngay trong user gesture → unlock autoplay iOS
+    // 2. Preload BGM trong user gesture → unlock autoplay iOS
     if (!bgmRef.current) {
       const a = new Audio(BGM_URL)
       a.loop = true
       a.volume = 0
       bgmRef.current = a
     }
-    setIsOpen(true)
     setState('INTRO_VIDEO')
   }, [])
 
@@ -605,6 +712,7 @@ export default function BirthdayOverlay() {
             </button>
 
             <AnimatePresence mode="wait">
+              {state === 'PASSWORD' && <PasswordGate key="pwd" onSuccess={handlePasswordSuccess} />}
               {state === 'INTRO_VIDEO' && <IntroVideo key="intro" onEnd={() => setState('LOCK_1')} />}
               {state === 'LOCK_1' && <Lock1 key="l1" onSuccess={() => setState('LOCK_2')} />}
               {state === 'LOCK_2' && <Lock2 key="l2" onSuccess={() => setState('LOCK_3')} />}
@@ -638,4 +746,9 @@ export default function BirthdayOverlay() {
       </AnimatePresence>
     </>
   )
+}
+
+export default function BirthdayOverlay() {
+  if (!isBirthdayDay()) return null
+  return <BirthdayOverlayInner />
 }
