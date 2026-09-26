@@ -599,6 +599,7 @@ function BirthdayOverlayInner() {
   const [state, setState] = useState<BirthdayState>('IDLE')
   const [isOpen, setIsOpen] = useState(false)
   const bgmRef = useRef<HTMLAudioElement | null>(null)
+  const bgmStartedRef = useRef(false) // guard: BGM chỉ fade-in 1 lần / session
 
   const handleOpen = useCallback(() => {
     setIsOpen(true)
@@ -613,6 +614,10 @@ function BirthdayOverlayInner() {
       const a = new Audio(BGM_URL)
       a.loop = true
       a.volume = 0
+      // ── iOS unlock: gọi play() rồi pause() ngay trong user gesture ──
+      a.play()
+        .then(() => { try { a.pause(); a.currentTime = 0 } catch {} })
+        .catch(() => {})
       bgmRef.current = a
     }
     setState('INTRO_VIDEO')
@@ -623,26 +628,29 @@ function BirthdayOverlayInner() {
       bgmRef.current.pause()
       bgmRef.current.currentTime = 0
     }
+    bgmStartedRef.current = false // ← reset guard để lần mở sau BGM phát lại từ đầu
     try { window.dispatchEvent(new Event('confession:stop')) } catch {}
     setIsOpen(false)
     setState('IDLE')
   }, [])
 
-  // Fade-in BGM khi vào CELEBRATION
+  // Bắt đầu phát BGM ngay khi intro kết thúc (state chuyển sang LOCK_1)
   useEffect(() => {
-    if (state === 'CELEBRATION' && bgmRef.current) {
-      const a = bgmRef.current
-      a.currentTime = 0
-      a.volume = 0
-      a.play().catch(() => {})
-      const start = performance.now()
-      const fade = () => {
-        const t = Math.min(1, (performance.now() - start) / 2000)
-        a.volume = 0.7 * t
-        if (t < 1) requestAnimationFrame(fade)
-      }
-      fade()
+    if (state !== 'LOCK_1' || !bgmRef.current || bgmStartedRef.current) return
+    bgmStartedRef.current = true
+
+    const a = bgmRef.current
+    try { a.currentTime = 0 } catch {}
+    a.volume = 0
+    a.play().catch(() => {})
+
+    const start = performance.now()
+    const fade = () => {
+      const t = Math.min(1, (performance.now() - start) / 2000)
+      a.volume = 0.7 * t
+      if (t < 1) requestAnimationFrame(fade)
     }
+    fade()
   }, [state])
 
   // Cleanup khi unmount
