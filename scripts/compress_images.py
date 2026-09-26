@@ -19,6 +19,7 @@ Cách dùng:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import shutil
 import sys
@@ -73,12 +74,38 @@ def _compress_png(im: Image.Image, dst: Path, aggressive: bool) -> None:
         tmp_alts.unlink(missing_ok=True)
 
 
+def _file_hash(path: Path) -> str:
+    """SHA-256 của nội dung file — fingerprint để nhận biết file đã nén hay chưa."""
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _write_marker(marker: Path, path: Path) -> None:
+    """Ghi marker .compressed chứa hash hiện tại của file (im lặng nếu lỗi)."""
+    try:
+        marker.write_text(_file_hash(path))
+    except Exception:
+        pass
+
+
 def compress_one(task) -> tuple[str, int, int, str]:
     path, quality, aggressive, backup = task
     path = Path(path)
     orig_size = path.stat().st_size
     if orig_size == 0:
         return str(path), 0, 0, "empty"
+
+    # Bỏ qua nếu marker còn nguyên vẹn và khớp hash = nội dung chưa thay đổi
+    marker = path.with_name(path.name + ".compressed")
+    if marker.exists():
+        try:
+            if marker.read_text().strip() == _file_hash(path):
+                return str(path), orig_size, orig_size, "skip-done"
+        except Exception:
+            pass
 
     tmp = path.with_name(path.name + ".tmp")
     tmp.unlink(missing_ok=True)  # dọn rác sót từ lần chạy trước
@@ -129,9 +156,11 @@ def compress_one(task) -> tuple[str, int, int, str]:
 
         if new_size < orig_size:
             tmp.replace(path)
+            _write_marker(marker, path)
             return str(path), orig_size, new_size, "ok"
         else:
             tmp.unlink(missing_ok=True)
+            _write_marker(marker, path)
             return str(path), orig_size, orig_size, "skip-bigger"
 
     except Exception as e:
@@ -182,7 +211,7 @@ def main() -> None:
         for p in root.rglob("*")
         if p.is_file()
         and p.suffix.lower() in SUPPORTED
-        and not p.name.endswith((".bak", ".tmp"))
+        and not p.name.endswith((".bak", ".tmp", ".compressed"))
     ]
     if not files:
         print("[i] Không có ảnh nào để nén.")
