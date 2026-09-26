@@ -1,6 +1,6 @@
 // ─── Khóa 1 ───
 export const LOCK_1_QUESTION = 'Đếm số ngọn nến đang cháy trên bàn ăn × 2 = ?'
-export const LOCK_1_ANSWER = 4 // 2 ngọn nến × 2 = 4
+export const LOCK_1_ANSWER = 6 // 2 ngọn nến × 2 = 4
 
 // ─── Khóa 2 ───
 export const LOCK_2_DURATION_MS = 3000
