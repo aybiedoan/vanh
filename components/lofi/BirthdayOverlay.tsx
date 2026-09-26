@@ -690,6 +690,61 @@ function Celebration({ onNext }: { onNext: () => void }) {
   )
 }
 
+// ─── HappyBirthdayTitle: chữ "Happy Birthday" từng ký tự một màu ────────────
+function HappyBirthdayTitle() {
+  const text = 'Happy Birthday'
+  // Bảng màu cầu vồng — chỉnh tại đây nếu muốn đổi tông
+  const colors = [
+    '#FF6584', '#FF8E72', '#FFAAA6', '#FFD3B6', '#FFD93D',
+    '#6BCB77', '#4D96FF', '#9B51E0', '#F38BA8', '#A6E3A1',
+    '#F9E2AF', '#89B4FA', '#CBA6F7', '#F5C2E7', '#FFFFFF',
+  ]
+
+  return (
+    <motion.h1
+      initial={{ opacity: 0, scale: 0.8, y: -20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ delay: 0.4, type: 'spring', stiffness: 120, damping: 14 }}
+      className="absolute inset-x-0 top-[8vh] text-center px-4 select-none pointer-events-none"
+      style={{
+        fontFamily: 'var(--font-body)',
+        fontSize: 'clamp(1.6rem, 7vw, 3rem)',
+        fontWeight: 700,
+        letterSpacing: '0.06em',
+        textShadow: '0 0 24px rgba(255,200,235,0.35), 0 4px 18px rgba(0,0,0,0.45)',
+      }}
+    >
+      {text.split('').map((ch, i) => (
+        <motion.span
+          key={i}
+          className="inline-block"
+          style={{
+            color: ch === ' ' ? 'transparent' : colors[i % colors.length],
+            marginRight: ch === ' ' ? '0.35em' : 0,
+            whiteSpace: 'pre',
+          }}
+          animate={
+            ch === ' '
+              ? {}
+              : {
+                  y: [0, -6, 0],
+                  scale: [1, 1.08, 1],
+                }
+          }
+          transition={{
+            duration: 1.6,
+            delay: i * 0.07,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+        >
+          {ch === ' ' ? '\u00A0' : ch}
+        </motion.span>
+      ))}
+    </motion.h1>
+  )
+}
+
 // ─── StarSkyScene: bầu trời sao lặp + bong bóng + pháo hoa + nút mở thư ─────
 function StarSkyScene({ onOpenLetter }: { onOpenLetter: () => void }) {
   // Sinh sao 1 lần, giữ nguyên qua re-render
@@ -768,6 +823,9 @@ function StarSkyScene({ onOpenLetter }: { onOpenLetter: () => void }) {
           'radial-gradient(ellipse at 50% 30%, #2a0f3a 0%, #150720 55%, #08030d 100%)',
       }}
     >
+      {/* Chữ Happy Birthday nhiều màu */}
+      <HappyBirthdayTitle />
+
       {/* Sao lấp lánh */}
       <div className="absolute inset-0 pointer-events-none">
         {stars.map((s) => (
