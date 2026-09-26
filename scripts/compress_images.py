@@ -175,7 +175,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Nén ảnh hàng loạt.")
     ap.add_argument(
         "--dir",
-        default="vanh/public/assets/img",
+        default="./public/assets/img",
         help="Thư mục ảnh (mặc định: vanh/public/assets/img)",
     )
     ap.add_argument(
