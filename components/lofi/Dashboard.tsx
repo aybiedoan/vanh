@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import CountdownTimer from './CountdownTimer'
+import PomodoroTimer from './pomodoro/PomodoroTimer'
 import PlaylistWidget from './PlaylistWidget'
 import EnergyBubble from './EnergyBubble'
 import ConfessionLetterModal from './ConfessionLetter'
@@ -32,14 +32,15 @@ export default function Dashboard({ onOpenShowroom }: { onOpenShowroom: () => vo
       {/* ── CENTERPIECE: Countdown ── */}
       <div
         className="absolute inset-x-0 top-0 flex justify-center z-10 pointer-events-none"
-        style={{ paddingTop: '8vh' }}
+        style={{ paddingTop: '4vh' }}
       >
         <motion.div
+          className="pointer-events-auto"
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2, ease: 'easeOut' }}
         >
-          <CountdownTimer />
+          <PomodoroTimer />
         </motion.div>
       </div>
 
