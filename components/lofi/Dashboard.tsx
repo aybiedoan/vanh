@@ -6,6 +6,7 @@ import PomodoroTimer from './pomodoro/PomodoroTimer'
 import PlaylistWidget from './PlaylistWidget'
 import EnergyBubble from './EnergyBubble'
 import ConfessionLetterModal from './ConfessionLetter'
+import BirthdayOverlay from './BirthdayOverlay'
 import { asset } from '@/lib/asset'
 
 const VIDEO_SRC = asset('/assets/bg/home.mp4')
@@ -71,6 +72,9 @@ export default function Dashboard({ onOpenShowroom }: { onOpenShowroom: () => vo
 
         {/* Energy Bubble */}
         <EnergyBubble />
+
+        {/* Birthday Easter Egg */}
+        <BirthdayOverlay />
 
         {/* Gift Box Portal */}
         <GiftPortalButton onOpen={onOpenShowroom} />
