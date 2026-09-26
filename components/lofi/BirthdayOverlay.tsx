@@ -762,18 +762,21 @@ function BirthdayOverlayInner() {
     fade()
   }, [state])
 
-  // CELEBRATION: unmute + fade-in BGM romantic từ 0 → 0.7 trong ~2s
+  // Kết thúc BGM khi user nhấn "Happy Birthday" (chuyển sang CANDLE_VIDEO):
+  // fade-out âm lượng về 0 rồi pause hẳn
   useEffect(() => {
-    if (state !== 'CELEBRATION' || !bgmRef.current) return
+    if (state !== 'CANDLE_VIDEO' || !bgmRef.current) return
     const a = bgmRef.current
-    a.muted = false
-    a.volume = 0
-    try { a.play() } catch {}
+    const startVol = a.volume
     const start = performance.now()
     const fade = () => {
-      const t = Math.min(1, (performance.now() - start) / 2000)
-      a.volume = 0.7 * t
-      if (t < 1) requestAnimationFrame(fade)
+      const t = Math.min(1, (performance.now() - start) / 800)
+      a.volume = startVol * (1 - t)
+      if (t < 1) {
+        requestAnimationFrame(fade)
+      } else {
+        try { a.pause() } catch {}
+      }
     }
     fade()
   }, [state])
