@@ -30,6 +30,13 @@ type ViewPhase = 'greeting' | 'starsky'
 
 const HAS_SEEN_GREETING_KEY = 'showroom_has_seen_greeting'
 
+// Chỉ hiển thị nút "Xem lời chúc" vào đúng ngày 1/6 hằng năm
+function isGreetingDay(): boolean {
+  const now = new Date()
+  // getMonth() trả về 0-indexed: tháng 6 = 5
+  return now.getMonth() === 5 && now.getDate() === 1
+}
+
 // ─── Stable seeded random (avoids hydration mismatch) ────────────────────────
 
 function seededRandom(seed: number) {
@@ -809,6 +816,7 @@ function StarSkyView({
   const smoothMouseY = useSpring(mouseY, { stiffness: 160, damping: 22 })
   const TOTAL = MEMORIES.length
   const MAGNETIC_RADIUS = 55
+  const showGreetingButton = isGreetingDay()
 
   useEffect(() => {
     setIsClient(true)
@@ -1161,30 +1169,32 @@ useEffect(() => {
           {musicMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
         </motion.button>
 
-        <motion.button
-          onClick={onReplayGreeting}
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          className="flex items-center gap-2"
-          style={{
-            background: 'rgba(55,25,55,0.6)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,175,220,0.18)',
-            borderRadius: 40,
-            padding: '8px 18px',
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.82rem',
-            color: 'hsl(320 55% 84%)',
-            cursor: 'pointer',
-            boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
-          }}
-        >
-          <Play size={13} />
-          <span>Xem lời chúc</span>
-        </motion.button>
+        {showGreetingButton && (
+          <motion.button
+            onClick={onReplayGreeting}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="flex items-center gap-2"
+            style={{
+              background: 'rgba(55,25,55,0.6)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,175,220,0.18)',
+              borderRadius: 40,
+              padding: '8px 18px',
+              fontFamily: 'var(--font-body)',
+              fontSize: '0.82rem',
+              color: 'hsl(320 55% 84%)',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
+            }}
+          >
+            <Play size={13} />
+            <span>Xem lời chúc</span>
+          </motion.button>
+        )}
       </div>
 
       <AnimatePresence>
