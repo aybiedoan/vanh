@@ -63,7 +63,7 @@ export default function PomodoroTimer() {
           />
         </div>
 
-        {/* Cột phải: công việc */}
+        {/* Cột phải: Tasks */}
         <div
           className="min-w-0 xl:flex-1 xl:border-l xl:pl-6"
           style={{ borderColor: 'rgba(255,175,220,0.12)' }}
