@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Heart } from 'lucide-react'
 import { asset } from '@/lib/asset'
@@ -438,9 +438,77 @@ function Lock3({ onSuccess }: { onSuccess: () => void }) {
   )
 }
 
+// ─── Balloons: bóng bay trôi lên bằng framer-motion + CSS border-radius ─────
+function Balloons() {
+  const balloons = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, i) => ({
+        id: i,
+        left: 5 + Math.random() * 90,
+        delay: Math.random() * 1.5,
+        duration: 6 + Math.random() * 4,
+        size: 40 + Math.random() * 30,
+        hue: [340, 320, 280, 200, 45][i % 5],
+        sway: (Math.random() - 0.5) * 60,
+      })),
+    []
+  )
+
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none overflow-hidden"
+      style={{ zIndex: 5 }}
+    >
+      {balloons.map((b) => (
+        <motion.div
+          key={b.id}
+          initial={{ y: '110vh', opacity: 0 }}
+          animate={{ y: '-20vh', opacity: [0, 1, 1, 0.8] }}
+          transition={{
+            duration: b.duration,
+            delay: b.delay,
+            ease: 'easeOut',
+            repeat: Infinity,
+            repeatDelay: 0.5,
+          }}
+          className="absolute"
+          style={{ left: `${b.left}%`, bottom: 0 }}
+        >
+          <motion.div
+            animate={{ x: [0, b.sway, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            style={{
+              width: b.size,
+              height: b.size * 1.2,
+              borderRadius: '50% 50% 50% 50% / 55% 55% 45% 45%',
+              background: `radial-gradient(circle at 35% 30%, hsl(${b.hue} 90% 85%), hsl(${b.hue} 75% 65%))`,
+              boxShadow: `0 0 20px hsl(${b.hue} 80% 70% / 0.5)`,
+              position: 'relative',
+            }}
+          >
+            {/* Dây bóng */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: '50%',
+                width: 1,
+                height: 40,
+                background: 'rgba(255,220,235,0.4)',
+                transform: 'translateX(-50%)',
+              }}
+            />
+          </motion.div>
+        </motion.div>
+      ))}
+    </div>
+  )
+}
+
 // ─── Celebration: timeline 4 giây (burst → reveal → ready) ──────────────────
 function Celebration({ onNext }: { onNext: () => void }) {
   const [phase, setPhase] = useState<'burst' | 'reveal' | 'ready'>('burst')
+  const fireworkTimeouts = useRef<ReturnType<typeof setTimeout>[]>([])
 
   useEffect(() => {
     let cancelled = false
@@ -478,6 +546,26 @@ function Celebration({ onNext }: { onNext: () => void }) {
           if (Date.now() < end) requestAnimationFrame(frame)
         }
         frame()
+
+        // 5 đợt pháo hoa rải rác trên bầu trời (giây 2 → 6)
+        for (let i = 0; i < 5; i++) {
+          const t = setTimeout(() => {
+            if (cancelled) return
+            confetti({
+              particleCount: 80,
+              spread: 360,
+              startVelocity: 30,
+              ticks: 90,
+              gravity: 0.9,
+              origin: {
+                x: 0.15 + Math.random() * 0.7,
+                y: 0.15 + Math.random() * 0.35,
+              },
+              colors: ['#ffb6c1', '#ff69b4', '#ffe3f1', '#ffd700', '#fff2b0', '#c084fc'],
+            })
+          }, 2000 + i * 800)
+          fireworkTimeouts.current.push(t)
+        }
       } catch (e) {
         console.warn('Confetti failed:', e)
       }
@@ -491,6 +579,8 @@ function Celebration({ onNext }: { onNext: () => void }) {
       cancelled = true
       clearTimeout(t1)
       clearTimeout(t2)
+      fireworkTimeouts.current.forEach(clearTimeout)
+      fireworkTimeouts.current = []
     }
   }, [])
 
@@ -513,7 +603,10 @@ function Celebration({ onNext }: { onNext: () => void }) {
         }}
       />
 
-      <div className="relative flex flex-col items-center text-center px-6">
+      {/* Bóng bay trôi lên khi nút Happy Birthday xuất hiện */}
+      {phase === 'ready' && <Balloons />}
+
+      <div className="relative z-10 flex flex-col items-center text-center px-6">
         {/* Chữ chúc mừng — hiện giây 1, mờ đi giây 2+ */}
         <motion.div
           initial={{ scale: 0.4, opacity: 0 }}
