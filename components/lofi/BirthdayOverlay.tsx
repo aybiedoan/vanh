@@ -705,7 +705,7 @@ function HappyBirthdayTitle() {
       initial={{ opacity: 0, scale: 0.8, y: -20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ delay: 0.4, type: 'spring', stiffness: 120, damping: 14 }}
-      className="absolute inset-x-0 top-[8vh] text-center px-4 select-none pointer-events-none"
+      className="w-full text-center px-4 select-none pointer-events-none flex-shrink-0"
       style={{
         fontFamily: 'var(--font-body)',
         fontSize: 'clamp(1.6rem, 7vw, 3rem)',
@@ -890,47 +890,52 @@ function StarSkyScene({ onOpenLetter }: { onOpenLetter: () => void }) {
         ))}
       </div>
 
-      {/* Ảnh kỷ niệm memory-46 */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.85, y: 30 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ delay: 0.8, duration: 1, ease: 'easeOut' }}
-        className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-        style={{
-          width: 'clamp(180px, 55vw, 280px)',
-          height: 'auto',
-          borderRadius: 16,
-          overflow: 'hidden',
-          border: '1px solid rgba(255,175,220,0.35)',
-          boxShadow: '0 0 40px rgba(255,160,210,0.35), 0 20px 60px rgba(0,0,0,0.5)',
-          transform: 'rotate(-3deg)',
-        }}
-      >
-        <motion.img
-          src={MEMORY_46_URL}
-          alt="Kỷ niệm"
-          animate={{
-            y: [0, -6, 0],
-            boxShadow: [
-              '0 0 30px rgba(255,160,210,0.3)',
-              '0 0 50px rgba(255,160,210,0.55)',
-              '0 0 30px rgba(255,160,210,0.3)',
-            ],
-          }}
-          transition={{
-            y: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
-            boxShadow: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
-          }}
-          style={{
-            width: '100%',
-            height: 'auto',
-            display: 'block',
-          }}
-        />
-      </motion.div>
+      {/* Layout dọc: tiêu đề — ảnh — nút */}
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-between px-6 pt-[7vh] pb-[8vh]">
+        {/* Chữ Happy Birthday nhiều màu */}
+        <HappyBirthdayTitle />
 
-      {/* Nút mở thư — nằm dưới ảnh */}
-      <div className="absolute inset-0 flex items-end justify-center pb-[12vh] px-6">
+        {/* Ảnh kỷ niệm memory-46 */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.85, y: 30, rotate: -3 }}
+          animate={{ opacity: 1, scale: 1, y: 0, rotate: -3 }}
+          transition={{ delay: 0.8, duration: 1, ease: 'easeOut' }}
+          className="pointer-events-none flex-shrink-0"
+          style={{
+            width: 'clamp(160px, 50vw, 260px)',
+            maxHeight: '46vh',
+            borderRadius: 16,
+            overflow: 'hidden',
+            border: '1px solid rgba(255,175,220,0.35)',
+            boxShadow: '0 0 40px rgba(255,160,210,0.35), 0 20px 60px rgba(0,0,0,0.5)',
+          }}
+        >
+          <motion.img
+            src={MEMORY_46_URL}
+            alt="Kỷ niệm"
+            animate={{
+              y: [0, -6, 0],
+              boxShadow: [
+                '0 0 30px rgba(255,160,210,0.3)',
+                '0 0 50px rgba(255,160,210,0.55)',
+                '0 0 30px rgba(255,160,210,0.3)',
+              ],
+            }}
+            transition={{
+              y: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
+              boxShadow: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
+            }}
+            style={{
+              width: '100%',
+              height: '100%',
+              maxHeight: '46vh',
+              objectFit: 'cover',
+              display: 'block',
+            }}
+          />
+        </motion.div>
+
+        {/* Nút mở thư */}
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -938,7 +943,7 @@ function StarSkyScene({ onOpenLetter }: { onOpenLetter: () => void }) {
           onClick={onOpenLetter}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="relative px-8 py-3 rounded-full cursor-pointer select-none"
+          className="relative px-8 py-3 rounded-full cursor-pointer select-none flex-shrink-0"
           style={{
             background:
               'linear-gradient(135deg, rgba(255,182,193,0.85) 0%, rgba(219,112,147,0.85) 100%)',
