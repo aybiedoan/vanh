@@ -13,14 +13,14 @@ export const DEFAULT_SETTINGS: PomodoroSettings = {
   volume: 0.6,
 }
 
-// Hue riêng cho 3 mode nhưng giữ tông pastel — KHÔNG dùng đỏ/xanh ngọc Pomofocus.
+// Cả 3 mode dùng chung một hệ màu mint pastel — lấy đúng tông của "Nghỉ ngắn".
 export const MODE_META: Record<
   PomodoroMode,
   { label: string; hue: number; sat: number; light: number }
 > = {
-  pomodoro:    { label: 'Tập trung', hue: 332, sat: 80, light: 70 }, // hồng chủ đạo
-  short_break: { label: 'Nghỉ ngắn', hue: 168, sat: 55, light: 68 }, // mint pastel
-  long_break:  { label: 'Nghỉ dài',  hue: 268, sat: 55, light: 74 }, // lavender pastel
+  pomodoro:    { label: 'Tập trung', hue: 168, sat: 55, light: 68 },
+  short_break: { label: 'Nghỉ ngắn', hue: 168, sat: 55, light: 68 },
+  long_break:  { label: 'Nghỉ dài',  hue: 168, sat: 55, light: 68 },
 }
 
 export function modeDurationSec(mode: PomodoroMode, s: PomodoroSettings): number {
