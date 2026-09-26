@@ -391,7 +391,7 @@ function Lock3({ onSuccess }: { onSuccess: () => void }) {
       >
         <LockProgress current={3} />
         <h3 className="text-center mb-2" style={{ fontFamily: 'var(--font-display)', color: 'hsl(320 50% 92%)', fontSize: '1.2rem' }}>
-          Khóa 03: Xác thực bộ nhớ
+          Khóa 03: Mảnh ghép còn thiếu
         </h3>
         <p className="text-center text-sm mb-5" style={{ color: 'rgba(255,220,235,0.7)' }}>
           {LOCK_3_QUESTION}
