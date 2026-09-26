@@ -631,6 +631,7 @@ function BirthdayOverlayInner() {
     if (bgmRef.current) {
       bgmRef.current.pause()
       bgmRef.current.currentTime = 0
+      bgmRef.current.muted = false // ← reset để lần sau BGM phát lại được
     }
     bgmStartedRef.current = false // ← reset guard để lần mở sau BGM phát lại từ đầu
     try { window.dispatchEvent(new Event('confession:stop')) } catch {}
@@ -655,6 +656,14 @@ function BirthdayOverlayInner() {
       if (t < 1) requestAnimationFrame(fade)
     }
     fade()
+  }, [state])
+
+  // Mute hẳn BGM romantic sau khi xong 3 khóa (chuyển CELEBRATION),
+  // để nhường chỗ cho BGM khác phát về sau
+  useEffect(() => {
+    if (state === 'CELEBRATION' && bgmRef.current) {
+      bgmRef.current.muted = true
+    }
   }, [state])
 
   // Cleanup khi unmount
