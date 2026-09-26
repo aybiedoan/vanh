@@ -27,6 +27,9 @@ const LABEL_STYLE: React.CSSProperties = {
   letterSpacing: '0.04em',
 }
 
+const CHECKBOX_CLASS =
+  'border-pink-200/45 bg-white/[0.04] data-[state=checked]:border-pink-300/70 data-[state=checked]:bg-pink-400/35 data-[state=checked]:text-white'
+
 function NumberField({
   label,
   value,
@@ -137,6 +140,7 @@ export default function SettingsDialog({
 
           <label className="flex items-center gap-2 cursor-pointer">
             <Checkbox
+              className={CHECKBOX_CLASS}
               checked={draft.autoStartBreaks}
               onCheckedChange={(v) => patch({ autoStartBreaks: !!v })}
             />
@@ -145,6 +149,7 @@ export default function SettingsDialog({
 
           <label className="flex items-center gap-2 cursor-pointer">
             <Checkbox
+              className={CHECKBOX_CLASS}
               checked={draft.autoStartPomodoros}
               onCheckedChange={(v) => patch({ autoStartPomodoros: !!v })}
             />
@@ -153,6 +158,7 @@ export default function SettingsDialog({
 
           <label className="flex items-center gap-2 cursor-pointer">
             <Checkbox
+              className={CHECKBOX_CLASS}
               checked={draft.soundEnabled}
               onCheckedChange={(v) => patch({ soundEnabled: !!v })}
             />
